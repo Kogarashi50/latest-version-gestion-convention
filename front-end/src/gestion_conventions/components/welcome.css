@@ -6,7 +6,8 @@
     border: none !important;
     box-shadow: none !important;
     height: 100vh;
-overflow-y:hidden
+overflow-y:hidden;
+/* background-image: url('/imageconseil.jpg'); */
     /* background-color: white; /* Uncomment if parent .main-content isn't white */
 }
 

@@ -125,8 +125,8 @@ const menuItems = [
   // --- Section Heading: MARCHÉS & CONTRATS ---
   { id: 102, type: 'heading', label: "MARCHÉS & CONTRATS", path: '#' },
   { id: 10, icon: faClipboardCheck, label: "Marchés", path: "/marche", hasSubtitles: true, requiredPermission: PERMISSIONS.VIEW_MARCHES },
-  { id: 11, icon: faFileInvoiceDollar, label: "Bon de Commande", path: "/marches/bonCommandes", type: 'subtitle', parentId: 10, requiredPermission: PERMISSIONS.VIEW_BON_COMMANDE },
-  { id: 12, icon: faFileSignature, label: "Contrat Droit Commun", path: "/marches/contratsDroitCommun", type: 'subtitle', parentId: 10, requiredPermission: PERMISSIONS.VIEW_CONTRAT_DROIT_COMMUN },
+  { id: 11, icon: faFileInvoiceDollar, label: "Bon de Commande", path: "/marches/bonCommandes", hasSubtitles: false, requiredPermission: PERMISSIONS.VIEW_BON_COMMANDE },
+  { id: 12, icon: faFileSignature, label: "Contrat Droit Commun", path: "/marches/contratsDroitCommun", hasSubtitles: false, requiredPermission: PERMISSIONS.VIEW_CONTRAT_DROIT_COMMUN },
   {
     id: 20, // Ensure unique ID
     label: "Ordre de Service",
