@@ -187,7 +187,7 @@ const ConventionsPage = () => {
         {
             accessorKey: 'Intitule',
             header: 'Intitulé',
-            cell: info => <div className="text-truncate" style={{ maxWidth: '300px', minWidth: '100px', width:'250px' }} title={info.getValue()}>{info.getValue() || '-'}</div>,
+            cell: info => <div className="text-truncate" title={info.getValue()}>{info.getValue() || '-'}</div>,
             meta: { enableGlobalFilter: true },
              size: 250, minSize: 150, maxSize: 300  
         },
@@ -195,7 +195,7 @@ const ConventionsPage = () => {
             id: 'programme',
             header: 'Programme',
             accessorFn: row => row.programme?.Description, // Safely access nested property
-            cell: info => <div className="text-truncate"  style={{ maxWidth: '300px', minWidth: '100px', width:'250px' }}  title={info.getValue()}>{info.getValue() || '-'}</div>,
+            cell: info => <div className="text-truncate"  title={info.getValue()}>{info.getValue() || '-'}</div>,
             meta: { enableGlobalFilter: true },
             size: 250, minSize: 150, maxSize: 300  
 
@@ -212,7 +212,7 @@ const ConventionsPage = () => {
                 const displayText = projet
                     ? `${projet.Code_Projet || ''} - ${projet.Nom_Projet || 'N/A'}`.replace(/^ - | - $/, '').trim() // Combine, remove leading/trailing separators
                     : '-'; // Fallback if no projet linked
-                return <div className="text-truncate"  style={{ maxWidth: '300px', minWidth: '100px', width:'250px' }} title={displayText}>{displayText}</div>;
+                return <div className="text-truncate" title={displayText}>{displayText}</div>;
             },
             meta: { enableGlobalFilter: true },
             size: 250, minSize: 150, maxSize: 300  
@@ -262,7 +262,8 @@ const ConventionsPage = () => {
                 );
             },
             enableSorting: false, // Sorting by list is complex
-            meta: { enableGlobalFilter: false } // Searching ID string might not be useful
+            meta: { enableGlobalFilter: false }
+            , size: 40, minSize: 30, maxSize: 50  // Searching ID string might not be useful
         },
         {
             accessorKey: 'Maitre_Ouvrage',
@@ -277,6 +278,8 @@ const ConventionsPage = () => {
             cell: info => info.getValue() || '-',
             meta: { enableGlobalFilter: true },
             filterFn: 'equalsString'
+            , size: 60, minSize: 50, maxSize: 70  // Searching ID string might not be useful
+
         },
         {
             accessorKey: 'Cout_Global',

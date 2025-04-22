@@ -4,7 +4,7 @@ import {
   faProjectDiagram, faSitemap, faFileContract, faHandshake, faShapes,
   faHelmetSafety, faCity, faClipboardCheck, faMap, faUsersCog, faTasks,
   faFileInvoiceDollar, faChevronDown, faFileSignature, faFileAlt, faTachometerAlt,
-  faUserTag, faScroll // Added faScroll icon for Ordre de Service
+  faUserTag, faScroll,faGavel // Added faScroll icon for Ordre de Service
 } from "@fortawesome/free-solid-svg-icons";
 
 // --- Permission Constants ---
@@ -24,6 +24,10 @@ const PERMISSIONS = {
     DELETE_PARTENAIRES: 'delete partenaires',
     VIEW_PARTENAIRE_DETAILS: 'view partenaire details',
     VIEW_PARTENAIRE_SUMMARY: 'view partenaire summary', // Added from seeder
+    // VIEW_APPEL_OFFRES: 'view appel_offres',
+    // CREATE_APPEL_OFFRES: 'create appel_offres',
+    // UPDATE_APPEL_OFFRES: 'update appel_offres',
+    // DELETE_APPEL_OFFRES: 'delete appel_offres',
 
     VIEW_CHANTIERS: 'view chantiers', CREATE_CHANTIERS: 'create chantiers', UPDATE_CHANTIERS: 'update chantiers', DELETE_CHANTIERS: 'delete chantiers',
     VIEW_PROGRAMMES: 'view programmes', CREATE_PROGRAMMES: 'create programmes', UPDATE_PROGRAMMES: 'update programmes', DELETE_PROGRAMMES: 'delete programmes',
@@ -121,12 +125,20 @@ const menuItems = [
   { id: 101, type: 'heading', label: "LOCALISATION", path: '#' },
   { id: 9, icon: faCity, label: "Communes", path: "/commune", type: 'item', requiredPermission: PERMISSIONS.VIEW_COMMUNES },
   { id: 13, icon: faMap, label: "Provinces", path: "/province", type: 'item', requiredPermission: PERMISSIONS.VIEW_PROVINCES },
-
+  
   // --- Section Heading: MARCHÉS & CONTRATS ---
   { id: 102, type: 'heading', label: "MARCHÉS & CONTRATS", path: '#' },
   { id: 10, icon: faClipboardCheck, label: "Marchés", path: "/marche", hasSubtitles: true, requiredPermission: PERMISSIONS.VIEW_MARCHES },
   { id: 11, icon: faFileInvoiceDollar, label: "Bon de Commande", path: "/marches/bonCommandes", hasSubtitles: false, requiredPermission: PERMISSIONS.VIEW_BON_COMMANDE },
   { id: 12, icon: faFileSignature, label: "Contrat Droit Commun", path: "/marches/contratsDroitCommun", hasSubtitles: false, requiredPermission: PERMISSIONS.VIEW_CONTRAT_DROIT_COMMUN },
+  {
+    id: 21, // Ensure unique ID
+    icon: faGavel, // Icon for tenders/bids
+    label: "Appels d'Offre",
+    path: "/appel-offres", // Matches frontend route
+    type: 'item', // Standard item
+    // requiredPermission: PERMISSIONS.VIEW_APPEL_OFFRES // Permission to view the menu item
+},
   {
     id: 20, // Ensure unique ID
     label: "Ordre de Service",

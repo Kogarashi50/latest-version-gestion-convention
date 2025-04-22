@@ -27,7 +27,7 @@ import AvenantsPage from './gestion_conventions/avenants_views/AvenantsPage';
 import VersementPage from './gestion_conventions/versements_views/VersementPage'; // This might be VersementCP
 import RolesPage from './gestion_conventions/roles_views/RolesPage';
 import EngagementsPage from './gestion_conventions/engagements_views/EngagementsPage';
-
+import AppelOffrePage from './gestion_conventions/appeloffre_views/AppelOffrePage'; 
 // --- Import Page Components (Added from App.js 2) ---
 import VersementsPPPage from './gestion_conventions/versementspp_views/VersementppPage';
 import PartnerSummaryPage from './gestion_conventions/partenaire_sum_views/PartnerSummaryPage';
@@ -240,6 +240,7 @@ function AppContent() {
                         path="/login"
                         element={!isAuthenticated ? <Login onLogin={handleLogin} /> : <Navigate to="/" replace />}
                     />
+                    
 
                     {/* Protected Routes - Render only if authenticated */}
                     <Route path="/" element={isAuthenticated ? <WelcomePage currentUser={currentUser} /> : <Navigate to="/login" replace />} />
@@ -260,7 +261,7 @@ function AppContent() {
                     <Route path='/engagements' element={isAuthenticated ? <EngagementsPage currentUser={currentUser}/> : <Navigate to="/login" replace />} />
                     <Route path='/users' element={isAuthenticated ? <UsersPage currentUser={currentUser} /> : <Navigate to="/login" replace />} />
                     <Route path='/roles' element={isAuthenticated ? <RolesPage currentUser={currentUser} /> : <Navigate to="/login" replace />} />
-
+                    <Route path='/appel-offres' element={isAuthenticated ? <AppelOffrePage currentUser={currentUser} /> : <Navigate to="/login" replace />} />
                     {/* --- Added Routes from App.js 2 --- */}
                     <Route path='/versementpp' element={isAuthenticated ? <VersementsPPPage currentUser={currentUser} /> : <Navigate to="/login" replace />} />
                     <Route path='/finance/partner-summary' element={isAuthenticated ? <PartnerSummaryPage currentUser={currentUser} /> : <Navigate to="/login" replace />} />

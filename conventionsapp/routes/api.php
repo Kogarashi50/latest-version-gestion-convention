@@ -34,6 +34,7 @@ use App\Http\Controllers\EngagementFinancierController; // For Project Engagemen
 use App\Http\Controllers\VersementController;       // For Project Payments (PP)
 use App\Http\Controllers\OrdreServiceController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\AppelOffreController; // <-- ADD THIS IMPORT
 
 /*
 |--------------------------------------------------------------------------
@@ -52,7 +53,16 @@ Route::get('/convparts/options', [ConvPartController::class, 'getOptions'])->nam
 
 // --- Protected Routes (Require Sanctum Authentication & Permissions) ---
 Route::middleware('auth:sanctum')->group(function () {
-
+    Route::get('/appel-offres', [AppelOffreController::class, 'index']);
+    // ->middleware('permission:view appel_offres');
+    Route::post('/appel-offres', [AppelOffreController::class, 'store']);
+    // ->middleware('permission:create appel_offres');
+    Route::get('/appel-offres/{appel_offre}', [AppelOffreController::class, 'show']);
+    // ->middleware('permission:view appel_offres'); // Parameter name 'appel_offre' matches model binding convention
+    Route::put('/appel-offres/{appel_offre}', [AppelOffreController::class, 'update']);
+    // ->middleware('permission:update appel_offres');
+    Route::delete('/appel-offres/{appel_offre}', [AppelOffreController::class, 'destroy']);
+    // ->middleware('permission:delete appel_offres');
     // --- Auth Related ---
     Route::post('/logout', [LoginController::class, 'logout'])->name('api.logout');
     Route::get('/user', function (Request $request) {
