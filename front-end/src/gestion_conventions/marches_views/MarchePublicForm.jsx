@@ -11,18 +11,22 @@ import { faPlus, faTrashAlt, faPaperclip } from '@fortawesome/free-solid-svg-ico
 const TYPE_OPTIONS = [
     { value: 'Travaux', label: 'Travaux' },
     { value: 'Fournitures', label: 'Fournitures' },
-    { value: 'Services', label: 'Services' }
+    { value: 'Services', label: 'Services' },
+    { value: 'Etudes', label: 'Etudes' }
+
 ];
 const MODE_PASSATION_OPTIONS = [
-    "Appel d’offres ouvert",
-    "Appel d’offres restreint",
-    "Marché négocié avec mise en concurrence",
-    "Marché négocié sans mise en concurrence",
-    "Concours",
-    "Marché de gré à gré",
-    "Système d’acquisition dynamique",
-    "Accord-cadre"
+    { value: "Appel d’offres ouvert", label: "Appel d’offres ouvert"},
+    { value: "Appel d’offres restreint", label: "Appel d’offres restreint"},
+    { value: "Marché négocié avec mise en concurrence", label: "Marché négocié avec mise en concurrence"},
+    { value: "Marché négocié sans mise en concurrence", label: "Marché négocié sans mise en concurrence"},
+    { value: "Concours", label: "Concours"},
+    { value: "Marché de gré à gré", label: "Marché de gré à gré"},
+    { value: "Système d’acquisition dynamique", label: "Système d’acquisition dynamique"},
+    { value: "Accord-cadre", label: "Accord-cadre"},
+ 
 ];
+
 const STATUT_OPTIONS = [
     { value: 'En préparation', label: 'En préparation' },
     { value: 'En cours', label: 'En cours' },
@@ -30,7 +34,19 @@ const STATUT_OPTIONS = [
     { value: 'Résilié', label: 'Résilié' }
 ];
 // --- End Constants ---
-
+const formatDateForInput = (dateString) => {
+    if (!dateString) return '';
+    try {
+        // Assuming date comes from API as YYYY-MM-DD or YYYY-MM-DD HH:MM:SS
+        const datePart = dateString.split(' ')[0];
+         if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
+            return datePart;
+        }
+    } catch (e) {
+        console.error("Error formatting date for input:", dateString, e);
+    }
+    return ''; // Return empty if format is wrong
+};
 const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseApiUrl }) => {
     const isEditMode = !!itemId;
 
@@ -40,7 +56,10 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
     // State to hold the currently selected {value, label} object for the Convention Select component UI
     const [selectedConventionOption, setSelectedConventionOption] = useState(null);
     // --- End Convention State ---
-
+    const [AoOptions, setAoOptions] = useState([]);
+    const [loadingAoOptions, setLoadingAoOptions] = useState(true);
+    // State to hold the currently selected {value, label} object for the Convention Select component UI
+    const [selectedAoOption, setSelectedAoOption] = useState(null);
     // Initial state for a single lot
     const initialLotState = {
         id: null,
@@ -58,10 +77,16 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
         // Marche Public Fields
         numero_marche: '',
         intitule: '',        // Marche's own intitule
-        id_convention: null, // Foreign key to the convention
+        id_convention: null,
+        ref_appelOffre: null, // Store the selected AppelOffre ID
+        date_ouverture_plis: '',
+        date_fin_ouverture: '',
+        avancement_physique: '0', // Default to 0 or ''
+        avancement_financier: '0', // Default to 0 or ''
+        date_engagement_tresorerie: '', // Foreign key to the convention
         type_marche: null,
         procedure_passation: '',
-        mode_passation: '',
+        mode_passation:null,
         budget_previsionnel: '',
         montant_attribue: '',
         source_financement: '',
@@ -84,6 +109,7 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
     const [isLoading, setIsLoading] = useState(isEditMode); // Loading form data state
     const [error, setError] = useState(null);
     const [validationErrors, setValidationErrors] = useState({});
+    const [errors, setErrors] = useState({}); 
 
     const apiEndpoint = isEditMode
         ? `${baseApiUrl}/marches-publics/${itemId}`
@@ -140,12 +166,61 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
 
         return () => { isMounted = false; }; // Cleanup
     }, [baseApiUrl]); // Runs once on mount
+    useEffect(() => {
+        let isMounted = true;
+        setLoadingAoOptions(true);
+        console.log("Fetching ao options for select...");
+        // ****** IMPORTANT: Use the correct endpoint that returns the convention list ******
+        // If your index endpoint returns the list under 'conventions' key:
+        axios.get(`${baseApiUrl}/appel-offres`)
+        // If you created the dedicated list endpoint:
+        // axios.get(`${baseApiUrl}/conventions/list-for-select`)
+            .then(response => {
+                if (!isMounted) return;
+                console.log("Raw ao response data:", response.data); // Log raw response
 
+                // ****** ADAPT THIS based on your ACTUAL API response structure ******
+                const aoList = response.data?.appel_offres || response.data || []; // Adjust if needed
+
+                if (!Array.isArray(aoList)) {
+                    console.error("ao data received is not an array:", aoList);
+                    throw new Error("Format de données de ao invalide reçu.");
+                }
+
+                // Map to { value: id, label: Intitule } format
+                // ****** IMPORTANT: Check the exact field names (id, Intitule/intitule) in your response ******
+                const formattedOptions = aoList.map(opt => {
+                     if (!opt || opt.id === undefined || opt.intitule === undefined ) { // Check required fields
+                        console.warn("Skipping invalid ao option:", opt);
+                        return null; // Skip invalid entries
+                    }
+                    return {
+                        value: opt.id,
+                        label: opt.intitule // Assuming the label field is 'Intitule' (capital I)
+                    };
+                }).filter(opt => opt !== null); // Remove any null entries from mapping invalid data
+
+
+                console.log("Fetched and formatted ao options:", formattedOptions);
+                setAoOptions(formattedOptions);
+            })
+            .catch(error => {
+                if (!isMounted) return;
+                console.error("Error fetching ao options:", error);
+                setError(prev => prev ? `${prev}\nErreur chargement liste ao.` : "Erreur chargement liste ao..");
+                setAoOptions([]); // Set empty on error
+            })
+            .finally(() => {
+                if (isMounted) setLoadingAoOptions(false);
+            });
+
+        return () => { isMounted = false; }; // Cleanup
+    }, [baseApiUrl]);
     // --- Effect to Fetch Marche Public Data (for Edit Mode) ---
     useEffect(() => {
         let isMounted = true;
         // Only run if in edit mode AND convention options have been loaded
-        if (isEditMode && !loadingConventionOptions) {
+        if (isEditMode && !loadingConventionOptions && !loadingAoOptions) {
             setIsLoading(true); // Main form data loading starts
             setError(null);
             setValidationErrors({});
@@ -181,11 +256,18 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
                      ...prev, // Keep potentially pre-set state like default status
                      numero_marche: itemData.numero_marche || '',
                      intitule: itemData.intitule || '', // Marche's own intitule
-                     id_convention: itemData.id_convention || null, // Set the convention ID
+                     id_convention: itemData.id_convention || null,
+                    //  ref_appelOffre: itemData.ref_appelOffre || '', // Use the foreign key ID
+                     date_ouverture_plis: formatDateForInput(itemData.date_ouverture_plis),
+                     date_fin_ouverture: formatDateForInput(itemData.date_fin_ouverture),
+                     // Use ?? 0 to default null/undefined to 0, handle potential string '0.0' from DB
+                     avancement_physique: itemData.avancement_physique ?? '0',
+                     avancement_financier: itemData.avancement_financier ?? '0',
+                     date_engagement_tresorerie: formatDateForInput(itemData.date_engagement_tresorerie), // Set the convention ID
                      // Find the matching object for react-select state from options
                      type_marche: TYPE_OPTIONS.find(opt => opt.value === itemData.type_marche) || null,
                      procedure_passation: itemData.procedure_passation || '',
-                     mode_passation: itemData.mode_passation || '',
+                     mode_passation: MODE_PASSATION_OPTIONS.find(opt => opt.value === itemData.mode_passation) || null,
                      budget_previsionnel: itemData.budget_previsionnel || '',
                      montant_attribue: itemData.montant_attribue || '',
                      source_financement: itemData.source_financement || '',
@@ -224,6 +306,16 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
                  } else {
                      setSelectedConventionOption(null); // No convention linked
                  }
+                 const matchedOption2 =AoOptions.find(opt => opt.value === itemData.ref_appelOffre);
+                 if (matchedOption2) {
+                     console.log("Pre-selecting ao option by ID:", matchedOption2);
+                     setSelectedAoOption(matchedOption2);
+                 } else if (itemData.ref_appelOffre) {
+                     console.warn(`Could not find matching ao option for ID: "${itemData.ref_appelOffre}"`);
+                     setSelectedAoOption(null); // Reset if not found
+                 } else {
+                     setSelectedAoOption(null); // No convention linked
+                 }
 
             })
             .catch(err => {
@@ -232,6 +324,8 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
                  setError(err.response?.data?.message || err.message || "Erreur de chargement des données du marché.");
                  setFormData(initialFormData); // Reset form on error
                  setSelectedConventionOption(null);
+                 setSelectedAoOption(null);
+
             })
             .finally(() => {
                 if (isMounted) setIsLoading(false); // Stop main form loading
@@ -241,14 +335,17 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
              // Reset form for create mode
              setFormData(initialFormData);
              setSelectedConventionOption(null);
+             setSelectedAoOption(null);
+
              setIsLoading(false); // Not loading in create mode initially
         }
         // If isEditMode but options were still loading, this effect will re-run when loadingConventionOptions becomes false.
 
         return () => { isMounted = false; }; // Cleanup
     // Dependency array: Run when item changes, mode changes, OR when convention options finish loading
-    }, [itemId, isEditMode, apiEndpoint, loadingConventionOptions, conventionOptions]);
+    }, [itemId, isEditMode, apiEndpoint, loadingAoOptions, AoOptions,loadingConventionOptions, conventionOptions]);
 
+  
 
     // --- Standard Input Handlers ---
     const handleChange = (e) => {
@@ -270,7 +367,25 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
              setValidationErrors(prev => { const next = {...prev}; delete next[name]; return next; });
          }
     };
+    const handleAoSelectChange = (selectedOption) => {
+        console.log("ao selected:", selectedOption);
+        setSelectedAoOption(selectedOption); // Update the state for the Select component UI
 
+        // Update formData with the selected convention's ID
+        setFormData(prev => ({
+            ...prev,
+            ref_appelOffre: selectedOption ? selectedOption.value : null // Store the value (the ID)
+        }));
+
+        // Clear validation error for 'ref_appelOffre'
+        if (validationErrors.ref_appelOffre) {
+             setValidationErrors(prev => {
+                 const next = {...prev};
+                 delete next.ref_appelOffre;
+                 return next;
+             });
+         }
+    };
     // --- Handler for Convention Select Change ---
     const handleConventionSelectChange = (selectedOption) => {
         console.log("Convention selected:", selectedOption);
@@ -450,7 +565,7 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
              if (key === 'lots' || key === 'general_fichiers' || key === 'general_existing_fichiers' || key === 'general_fichiers_to_delete') return;
 
              // Handle react-select objects stored in state (like type_marche, statut)
-             if ((key === 'type_marche' || key === 'statut') && typeof value === 'object' && value !== null && value.value !== undefined) {
+             if ((key === 'type_marche' ||key==='mode_passation'|| key === 'statut') && typeof value === 'object' && value !== null && value.value !== undefined) {
                  submissionPayload.append(key, value.value);
              }
              // Append other fields (id_convention is now a simple value or null)
@@ -532,12 +647,12 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
         } finally {
             setIsLoading(false);
         }
-    }, [formData, isEditMode, apiEndpoint, onItemUpdated, onItemCreated, onClose, baseApiUrl, loadingConventionOptions, mapServerErrors]);
+    }, [formData, isEditMode, apiEndpoint, onItemUpdated, onItemCreated, onClose, baseApiUrl, loadingAoOptions,loadingConventionOptions, mapServerErrors]);
 
 
     // --- Render ---
     // Determine overall loading state for disabling submit button etc.
-    const isOverallLoading = (isLoading && isEditMode) || loadingConventionOptions;
+    const isOverallLoading = (isLoading && isEditMode) || loadingConventionOptions ||loadingAoOptions;
 
     // Show full screen spinner only when loading initial MARCHE data in edit mode
     if (isLoading && isEditMode) {
@@ -585,9 +700,10 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
                              options={STATUT_OPTIONS}
                              value={formData.statut} // Assumes formData.statut holds the {value, label} object
                              onChange={handleReactSelectChange} // Use generic handler
-                             styles={{ control: base => ({ ...base, borderColor: validationErrors.statut ? '#dc3545' : undefined,
+                             styles={{ control: base => ({ ...base, borderColor: validationErrors.statut ? '#dc3545' : '#999797',
                                  borderRadius:'50px',
-                            backgroundColor:'#f8f9fa'
+                            backgroundColor:'#f8f9fa',
+                          
                               }) }}
                              placeholder="Sélectionner statut..."
                          />
@@ -595,6 +711,7 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
                     </Form.Group>
                  )}
             </Row>
+
 
              {/* Marche Public's Own Intitule */}
              <Form.Group className="mb-3">
@@ -643,7 +760,7 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
                          options={TYPE_OPTIONS}
                          value={formData.type_marche} // Assumes formData.type_marche holds {value, label}
                          onChange={handleReactSelectChange} // Use generic handler
-                         styles={{ control: base => ({ ...base, borderColor: validationErrors.type_marche ? '#dc3545' : undefined ,
+                         styles={{ control: base => ({ ...base, borderColor: validationErrors.type_marche ? '#dc3545' : base.borderColor,
                             borderRadius:'50px',
                             backgroundColor:'#f8f9fa'
                          }) }}
@@ -658,24 +775,134 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
                  </Form.Group>
                  <Form.Group as={Col} md="4" className="mb-3">
                     <Form.Label htmlFor="mode_passation">Mode Passation</Form.Label>
-                    <Form.Select
-                        id="mode_passation"
+                    <Select
+                        id="mode_passation_select"
                         className='form-control-style shadow-sm form-control-rounded' // Use consistent style
                         name="mode_passation"
+                        options={MODE_PASSATION_OPTIONS}
                         value={formData.mode_passation} // Bind to state
-                        onChange={handleChange} // Use standard handler
+                        onChange={handleReactSelectChange} // Use standard handler
                         isInvalid={!!validationErrors.mode_passation}
-                        size="sm" // Optional: match other controls
-                    >
-                        <option value="">-- Sélectionner --</option>
-                        {MODE_PASSATION_OPTIONS.map((mode) => (
-                            <option key={mode} value={mode}>{mode}</option>
-                        ))}
-                    </Form.Select>
-                    <Form.Control.Feedback type="invalid">{validationErrors.mode_passation?.[0]}</Form.Control.Feedback>
+                        styles={{ control: base => ({ ...base, borderColor: validationErrors.mode_passation ? '#dc3545' : base.borderColor,
+                            borderRadius:'50px',
+                            backgroundColor:'#f8f9fa'
+                         }) }}
+                         placeholder="Sélectionner mode..."
+
+                         // Optional: match other controls
+                    />
+                       
+                    {validationErrors.mode_passation && <div className="d-block invalid-feedback">{validationErrors.mode_passation?.[0]}</div>}
+                    </Form.Group>
+            </Row>
+<Row className="mb-3">
+                {/* Appel d'Offre Reference */}
+                <Form.Group as={Col} md="6" controlId="ref_appelOffre">
+                    <Form.Label>Appel d'Offre Associé </Form.Label>
+           
+                    <Select
+                             id="ref_appelOffre"
+                             name="ref_appelOffre" // Matches formData key
+                             options={AoOptions}
+                             value={selectedAoOption} // Assumes formData.statut holds {value, label}
+                             onChange={handleAoSelectChange} // Use generic handler
+                             styles={{ control: base => ({ ...base, borderColor: validationErrors.statut ? '#dc3545' : base.borderColor,
+                                      borderRadius:'50px',
+                            backgroundColor:'#f8f9fa'
+                              }) }}
+                              isLoading={loadingAoOptions} // Show loading indicator
+                              isDisabled={loadingAoOptions} // Disable while loading options
+                              placeholder={loadingAoOptions ? "Chargement..." : "Sélectionner un appel d\'offre (Optionnel)..."}
+                              isClearable
+                              noOptionsMessage={() => 'Aucun appel d\'offre trouvé'}
+                              loadingMessage={() => 'Chargement...'}
+                         />
+                         
+                         {validationErrors.ref_appelOffre && <div className="d-block invalid-feedback">{validationErrors.ref_appelOffre[0]}</div>}
+                </Form.Group>
+
+                {/* Date Ouverture Plis */}
+                <Form.Group as={Col} md="6" controlId="date_ouverture_plis">
+                    <Form.Label>Date Ouverture des Plis </Form.Label>
+                    <Form.Control
+                     className='form-control-style shadow-sm form-control-rounded'
+                        type="date"
+                        name="date_ouverture_plis"
+                        value={formData.date_ouverture_plis}
+                        onChange={handleChange}
+                        isInvalid={!!errors.date_ouverture_plis}
+                    />
+                    <Form.Control.Feedback type="invalid">{errors.date_ouverture_plis}</Form.Control.Feedback>
                 </Form.Group>
             </Row>
 
+            <Row className="mb-3">
+                 {/* Date Fin Ouverture */}
+                 <Form.Group as={Col} md="6" controlId="date_fin_ouverture">
+                    <Form.Label>Date Fin Session Ouverture </Form.Label>
+                    <Form.Control
+                     className='form-control-style shadow-sm form-control-rounded'
+                        type="date"
+                        name="date_fin_ouverture"
+                        value={formData.date_fin_ouverture}
+                        onChange={handleChange}
+                        isInvalid={!!errors.date_fin_ouverture}
+                    />
+                    <Form.Control.Feedback type="invalid">{errors.date_fin_ouverture}</Form.Control.Feedback>
+                </Form.Group>
+
+                 {/* Date Engagement Trésorerie */}
+                 <Form.Group as={Col} md="6" controlId="date_engagement_tresorerie">
+                    <Form.Label>Date Engagement Trésorerie </Form.Label>
+                    <Form.Control
+                     className='form-control-style shadow-sm form-control-rounded'
+                        type="date"
+                        name="date_engagement_tresorerie"
+                        value={formData.date_engagement_tresorerie}
+                        onChange={handleChange}
+                        isInvalid={!!errors.date_engagement_tresorerie}
+                    />
+                    <Form.Control.Feedback type="invalid">{errors.date_engagement_tresorerie}</Form.Control.Feedback>
+                </Form.Group>
+            </Row>
+
+             <Row className="mb-3">
+                 {/* Avancement Physique */}
+                 <Form.Group as={Col} md="6" controlId="avancement_physique">
+                    <Form.Label>Avancement Physique (%) </Form.Label>
+                    <Form.Control
+                    className='form-control-style shadow-sm form-control-rounded'
+                        type="number"
+                        name="avancement_physique"
+                        value={formData.avancement_physique}
+                        onChange={handleChange}
+                        isInvalid={!!errors.avancement_physique}
+                     
+                        min="0"
+                        max="100"
+                        step="0.01" // Allow decimals
+                    />
+                    <Form.Control.Feedback type="invalid">{errors.avancement_physique}</Form.Control.Feedback>
+                </Form.Group>
+
+                 {/* Avancement Financier */}
+                 <Form.Group as={Col} md="6" controlId="avancement_financier">
+                    <Form.Label>Avancement Financier (%) </Form.Label>
+                    <Form.Control
+                    className='form-control-style shadow-sm form-control-rounded'
+                        type="number"
+                        name="avancement_financier"
+                        value={formData.avancement_financier}
+                        onChange={handleChange}
+                        isInvalid={!!errors.avancement_financier}
+                     
+                        min="0"
+                        max="100"
+                        step="0.01" // Allow decimals
+                    />
+                    <Form.Control.Feedback type="invalid">{errors.avancement_financier}</Form.Control.Feedback>
+                </Form.Group>
+            </Row>
             {/* Budget / Montant */}
              <Row>
                  <Form.Group as={Col} md="6" className="mb-3">
@@ -722,7 +949,7 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
                      <Form.Control.Feedback type="invalid">{validationErrors.date_notification?.[0]}</Form.Control.Feedback>
                  </Form.Group>
                  <Form.Group as={Col} md="6" lg="3" className="mb-3">
-                     <Form.Label htmlFor="date_debut_execution">Date Début Exécution</Form.Label>
+                     <Form.Label htmlFor="date_debut_execution" >Date Début Exécution</Form.Label>
                      <Form.Control className='form-control-style shadow-sm form-control-rounded' id="date_debut_execution" type="date" name="date_debut_execution" value={formData.date_debut_execution || ''} onChange={handleChange} isInvalid={!!validationErrors.date_debut_execution} />
                      <Form.Control.Feedback type="invalid">{validationErrors.date_debut_execution?.[0]}</Form.Control.Feedback>
                  </Form.Group>
@@ -745,7 +972,7 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
                              options={STATUT_OPTIONS}
                              value={formData.statut} // Assumes formData.statut holds {value, label}
                              onChange={handleReactSelectChange} // Use generic handler
-                             styles={{ control: base => ({ ...base, borderColor: validationErrors.statut ? '#dc3545' : undefined,
+                             styles={{ control: base => ({ ...base, borderColor: validationErrors.statut ? '#dc3545' : base.borderColor,
                                       borderRadius:'50px',
                             backgroundColor:'#f8f9fa'
                               }) }}

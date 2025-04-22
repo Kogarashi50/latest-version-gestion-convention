@@ -72,6 +72,32 @@ const MarchePublicPage = () => {
             cell: info => <div className="text-truncate" style={{ maxWidth: '180px' }} title={info.getValue()}>{info.getValue()}</div>,
         },
         {
+            id: 'appelOffreLIEE', // Unique column ID
+            header: "Appel d'Offre", // Column header text
+            size: 150, // Adjust size as needed
+            accessorFn: row => {
+                console.log("Processing row for AO column:", row);
+                console.log("Accessing row.appelOffre:", row.appel_offre);
+                 // Access the nested object and its 'numero' property
+                 // This relies on the backend eager-loading 'appelOffre' with at least 'id' and 'numero'
+                 // console.log("Row data for AO accessor:", row); // Uncomment to debug row structure
+                 return row.appel_offre ? row.appel_offre.numero : null;
+            },
+            cell: info => {
+                const aoNumero = info.getValue();
+                // Display the number with a link icon, similar to convention
+                return aoNumero
+                    ? <div className="text-truncate" style={{ maxWidth: '150px' }} title={aoNumero}>
+                          <FontAwesomeIcon icon={faLink} className="me-1 text-muted small" /> {aoNumero}
+                      </div>
+                    : '-'; // Display '-' if no related Appel d'Offre
+            },
+            meta: {
+                align: 'left', // Align left
+                enableGlobalFilter: true // Include this field in global search
+            },
+        },
+        {
             id: 'conventionLIEE', // Unique column ID
             header: 'Convention Liée',
             size: 170,
@@ -182,8 +208,8 @@ const MarchePublicPage = () => {
         'type_marche',
         'statut',
         'montant_attribue',
-        'attributaire',
         'actions',
+        'appelOffreLIEE', 
         'conventionLIEE' // Add the ID here if you want it visible by default
     ], []);
     const handleFormClose = (refreshNeeded = false) => {

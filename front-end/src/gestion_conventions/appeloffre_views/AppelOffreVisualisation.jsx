@@ -2,14 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import axios from 'axios'; // Needed for fetching data
+import axios from 'axios';
 import { Spinner, Alert, Badge, Button, Row, Col } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faBuilding, faToggleOn, faToggleOff, faInfoCircle,
-    faCalendarAlt, faTimes, faTag, faMoneyBillWave, faClock
+    faCalendarAlt, faTimes, faTag, faMoneyBillWave, faClock, faMapMarkedAlt
 } from '@fortawesome/free-solid-svg-icons';
-import '../marches_views/marche.css'; // Reuse styling if applicable
+// Assuming styling is shared or adjust path as needed
+import '../marches_views/marche.css';
 
 // --- Helpers (Consider moving to a shared utils file) ---
 const formatDate = (dateString) => {
@@ -17,9 +18,13 @@ const formatDate = (dateString) => {
     try {
         const datePart = dateString.split(' ')[0];
         if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) { return dateString; }
-        return new Date(datePart + 'T00:00:00Z').toLocaleDateString('fr-CA'); // YYYY-MM-DD
+        return new Date(datePart ).toLocaleDateString('fr-CA'); // YYYY-MM-DD
     } catch (e) { console.error("Date format error:", dateString, e); return dateString; }
 };
+
+// --- NEW: Helper to format DateTime ---
+
+
 
 const formatCurrency = (value) => {
     if (value == null || value === '' || isNaN(Number(value))) return '-';
@@ -38,7 +43,6 @@ const renderBooleanStatus = (value, trueIcon = faToggleOn, falseIcon = faToggleO
 
 const AppelOffreVisualisation = ({ itemId, onClose, baseApiUrl }) => {
     const [appelOffreData, setAppelOffreData] = useState(null);
-    const [provinceName, setProvinceName] = useState(null); // State for Province Name
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -54,40 +58,20 @@ const AppelOffreVisualisation = ({ itemId, onClose, baseApiUrl }) => {
             setLoading(true);
             setError(null);
             setAppelOffreData(null);
-            setProvinceName(null);
             console.log(`Visualisation AO: Fetching details for ID: ${itemId}`);
 
             try {
-                // 1. Fetch main Appel d'Offre data
+                // Fetch main Appel d'Offre data (includes 'provinces' array and 'date_publication')
                 const aoRes = await axios.get(`${baseApiUrl}/appel-offres/${itemId}`);
                 if (!isMounted) return;
 
-                // ** Adapt based on your API response structure **
                 const fetchedData = aoRes.data?.appel_offre || aoRes.data || null;
+                // Ensure 'provinces' is treated as an array
+                if (fetchedData && fetchedData.provinces === null) {
+                    fetchedData.provinces = [];
+                }
                 setAppelOffreData(fetchedData);
                 console.log(`Visualisation AO: Fetched data`, fetchedData);
-
-                // 2. Fetch Province name if ID exists
-                if (fetchedData && fetchedData.province_id) {
-                    console.log(`Visualisation AO: Fetching province details for ID: ${fetchedData.province_id}`);
-                    try {
-                         // ** Adapt endpoint and response structure **
-                         const provinceRes = await axios.get(`${baseApiUrl}/provinces/${fetchedData.province_id}`);
-                         if (isMounted) {
-                             // ** Adjust field name ('Description') based on your Province API response **
-                             const name = provinceRes.data?.province?.Description || provinceRes.data?.Description || `(ID: ${fetchedData.province_id})`;
-                             setProvinceName(name);
-                             console.log(`Visualisation AO: Set province name: ${name}`);
-                         }
-                    } catch (provinceErr) {
-                        if (isMounted) {
-                            console.error(`Error fetching province details (ID: ${fetchedData.province_id}):`, provinceErr.response || provinceErr);
-                            setProvinceName(`(Erreur chargement Province ID: ${fetchedData.province_id})`);
-                        }
-                    }
-                } else {
-                     if (isMounted) setProvinceName(null); // No province linked
-                }
 
             } catch (err) {
                 if (!isMounted) return;
@@ -99,20 +83,26 @@ const AppelOffreVisualisation = ({ itemId, onClose, baseApiUrl }) => {
         };
 
         fetchDetails();
-        return () => { isMounted = false; }; // Cleanup function
-    }, [itemId, baseApiUrl]); // Rerun if itemId or baseApiUrl changes
+        return () => { isMounted = false; };
+    }, [itemId, baseApiUrl]);
 
     // Helper to render detail fields conditionally
     const renderDetail = (label, value, formatter = null, mdSize = 6, lgSize = 4, icon = null) => (
-         (value !== null && value !== undefined && value !== '') || value === 0 ?
+         (value !== null && value !== undefined && value !== '' && !(Array.isArray(value) && value.length === 0)) || value === 0 ?
             <Col xs={12} md={mdSize} lg={lgSize} className="mb-3 data-point">
                 <strong className="text-dark titly d-block label">
-                    {icon && <FontAwesomeIcon icon={icon} className="me-2 text-warning" />}
+                    {icon && <FontAwesomeIcon icon={icon} className="me-2 text-secondary" />}
                     {label}
                 </strong>
-                <span className="value">{formatter ? formatter(value) : value}</span>
+                {label === "Province(s)" && Array.isArray(value) ? (
+                    value.length > 0 ? (
+                         value.map((prov, index) => (
+                            <Badge key={index} pill bg="light" text="dark" className="me-1 mb-1">{prov}</Badge>
+                         ))
+                    ) : ( <span className="value fst-italic text-muted">-</span> )
+                ) : ( <span className="value">{formatter ? formatter(value) : value}</span> )}
             </Col>
-        : null // Render nothing if value is null/undefined/empty string (but allow 0)
+        : null
     );
 
     // --- Render Logic ---
@@ -151,7 +141,7 @@ const AppelOffreVisualisation = ({ itemId, onClose, baseApiUrl }) => {
                  <h5 className="mb-3 section-title text-uppercase fw-bold text-secondary">Informations Clés</h5>
                  <Row className="mb-4 pb-3 border-bottom data-section">
                      {renderDetail("Catégorie", appelOffreData.categorie, null, 6, 4, faTag)}
-                     {renderDetail("Province", provinceName, null, 6, 4, faBuilding)}
+                     {renderDetail("Province(s)", appelOffreData.provinces, null, 6, 4, faMapMarkedAlt)}
                      {renderDetail("Estimation TTC", appelOffreData.estimation, formatCurrency, 6, 4, faMoneyBillWave)}
                      {renderDetail("Estimation HT", appelOffreData.estimation_HT, formatCurrency, 6, 4, faMoneyBillWave)}
                      {renderDetail("Montant TVA", appelOffreData.montant_TVA, formatCurrency, 6, 4, faMoneyBillWave)}
@@ -160,6 +150,7 @@ const AppelOffreVisualisation = ({ itemId, onClose, baseApiUrl }) => {
 
                  <h5 className="mb-3 section-title text-uppercase fw-bold text-secondary">Dates Importantes</h5>
                  <Row className="mb-4 pb-3 border-bottom data-section">
+                     {renderDetail("Date Publication", appelOffreData.date_publication, formatDate, 6, 3, faCalendarAlt)} {/* <-- ADDED & use formatDateTime */}
                      {renderDetail("Date Vérification", appelOffreData.date_verification, formatDate, 6, 3, faCalendarAlt)}
                      {renderDetail("Date Ouverture Plis", appelOffreData.date_ouverture, formatDate, 6, 3, faCalendarAlt)}
                      {renderDetail("Dernière Session OP", appelOffreData.last_session_op, formatDate, 6, 3, faCalendarAlt)}
@@ -168,17 +159,15 @@ const AppelOffreVisualisation = ({ itemId, onClose, baseApiUrl }) => {
                  <h5 className="mb-3 section-title text-uppercase fw-bold text-secondary">Statut Portail</h5>
                  <Row className="mb-3 data-section">
                       {renderDetail("Lancé sur Portail Achat Public", appelOffreData.lancement_portail, renderBooleanStatus, 6, 4)}
-                      {/* Only show date lancement if it was launched */}
                       {appelOffreData.lancement_portail && renderDetail("Date Lancement Portail", appelOffreData.date_lancement_portail, formatDate, 6, 4, faCalendarAlt)}
                  </Row>
 
-                 {/* Optional: Display Timestamps if needed
-                 <h5 className="mb-3 section-title">Historique</h5>
-                 <Row>
-                     {renderDetail("Créé le", appelOffreData.created_at, (ts) => new Date(ts).toLocaleString('fr-CA'))}
-                     {renderDetail("Modifié le", appelOffreData.updated_at, (ts) => new Date(ts).toLocaleString('fr-CA'))}
-                 </Row>
-                 */}
+                 {/* Message if no provinces are selected */}
+                 {(!appelOffreData.provinces || appelOffreData.provinces.length === 0) && (
+                    <Alert variant='secondary' className='small py-2 mt-3'>
+                        <FontAwesomeIcon icon={faInfoCircle} className="me-2"/> Aucune province n'est associée à cet appel d'offre.
+                    </Alert>
+                 )}
              </div>
         </div>
     );

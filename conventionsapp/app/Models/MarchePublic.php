@@ -5,14 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo; // Import BelongsTo
 
 class MarchePublic extends Model
 {
-    use HasFactory; // Enables factory usage
+    use HasFactory;
 
     /**
      * The table associated with the model.
-     * Explicitly defining is good practice.
      *
      * @var string
      */
@@ -24,11 +24,10 @@ class MarchePublic extends Model
      *
      * @var bool
      */
-    // public $timestamps = true; // Default is true, uncomment if needed explicitly
+    // public $timestamps = true; // Default is true
 
     /**
      * The attributes that are mass assignable.
-     * Protects against mass assignment vulnerabilities.
      * List all columns you want to allow filling via ::create() or ::update().
      *
      * @var array<int, string>
@@ -50,6 +49,14 @@ class MarchePublic extends Model
         'duree_marche',
         'statut',
         'id_convention',
+        // --- ADD NEW FILLABLE FIELDS ---
+        'ref_appelOffre',
+        'date_ouverture_plis',
+        'date_fin_ouverture',
+        'avancement_physique',
+        'avancement_financier',
+        'date_engagement_tresorerie',
+        // --- END NEW FILLABLE FIELDS ---
     ];
 
     /**
@@ -59,13 +66,23 @@ class MarchePublic extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'budget_previsionnel' => 'decimal:2', // Casts to float/string formatted to 2 decimals on retrieval
+        'budget_previsionnel' => 'decimal:2',
         'montant_attribue' => 'decimal:2',
-        'date_publication' => 'date:Y-m-d', // Casts to Carbon date object, formats to Y-m-d on serialization
+        'date_publication' => 'date:Y-m-d', // Or 'datetime:Y-m-d H:i:s' if it includes time
         'date_limite_offres' => 'date:Y-m-d',
         'date_notification' => 'date:Y-m-d',
         'date_debut_execution' => 'date:Y-m-d',
         'duree_marche' => 'integer',
+        'id_convention' => 'integer', // Good practice to cast Foreign Keys
+
+        // --- ADD CASTS FOR NEW FIELDS ---
+        'ref_appelOffre' => 'integer',       // Cast Foreign Key to integer
+        'date_ouverture_plis' => 'date:Y-m-d', // Cast to Carbon date object, format on serialization
+        'date_fin_ouverture' => 'date:Y-m-d',
+        'avancement_physique' => 'double',     // Cast to float/double
+        'avancement_financier' => 'double',    // Cast to float/double
+        'date_engagement_tresorerie' => 'date:Y-m-d',
+        // --- END CASTS FOR NEW FIELDS ---
         // Timestamps are automatically handled if columns exist and $timestamps isn't false
         // 'created_at' => 'datetime',
         // 'updated_at' => 'datetime',
@@ -100,15 +117,32 @@ class MarchePublic extends Model
       */
      public function tousFichiersJoints(): HasMany
      {
-         // A simple relationship based on marche_id - won't get files *only* linked to lots if marche_id is null on those files.
-         // To get truly ALL files, you might need a more complex query or fetch via lots relationship.
          // This defines files directly linked to the market:
          return $this->hasMany(FichierJoint::class, 'marche_id', 'id');
          // Fetching $marche->load('lots.fichiersJoints', 'fichiersJointsGeneraux') is often clearer.
      }
-     public function convention()
+
+     /**
+      * Get the convention associated with this public market.
+      * Defines a many-to-one relationship.
+      */
+     public function convention(): BelongsTo // Add return type hint
      {
          // Assumes Convention model exists and foreign key is id_convention
-         return $this->belongsTo(Convention::class,'id_convention', 'id');
+         return $this->belongsTo(Convention::class, 'id_convention', 'id');
      }
+
+     // --- ADD RELATIONSHIP TO APPEL D'OFFRE ---
+     /**
+      * Get the Appel d'Offre (Call for Tender) associated with this public market.
+      * Defines a many-to-one relationship.
+      */
+     public function appelOffre(): BelongsTo // Add return type hint
+     {
+         // Foreign key on this table ('marche_public') is 'ref_appelOffre'
+         // Owner key on the related table ('appel_offre') is 'id'
+         // Assumes AppelOffre model exists at App\Models\AppelOffre
+         return $this->belongsTo(AppelOffre::class, 'ref_appelOffre', 'id');
+     }
+     // --- END RELATIONSHIP ---
 }

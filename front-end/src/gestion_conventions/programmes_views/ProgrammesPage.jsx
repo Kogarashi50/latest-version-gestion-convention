@@ -13,15 +13,17 @@ const ProgrammesPage = () => {
     const programmeColumns = useMemo(() => [
         {
             accessorKey: 'Code_Programme', // Matches backend model/validation
-            header: 'Code Programme',
-            size: 150,
+            header: 'Code',
+            size: 50,
             meta: { enableGlobalFilter: true }
         },
         {
             accessorKey: 'Description', // Matches backend model/validation
             header: 'Description',
-            cell: info => <div className="text-truncate" style={{ maxWidth: '300px' }} title={info.getValue()}>{info.getValue() || '-'}</div>,
-            size: 350,
+            cell: info => <div className="text-truncate" style={{ mixWidth:'300px',maxWidth: '500px', width:'400px' }} title={info.getValue()}>{info.getValue() || '-'}</div>,
+            maxSize: 500,
+            size:400,
+            minSize:300,
             meta: { enableGlobalFilter: true }
         },
         {
@@ -31,21 +33,25 @@ const ProgrammesPage = () => {
             // Access nested data: programme.chantier.description
             // Fallback to id_chantier (which is Code_Chantier) if relation not loaded
             accessorFn: row => row.chantier?.Description || row.Id_Chantier || '-',
-            cell: info => <div className="text-truncate" style={{ maxWidth: '250px' }} title={info.getValue()}>{info.getValue()}</div>,
-            meta: { enableGlobalFilter: true } // Allow searching by Chantier description
+            cell: info => <div className="text-truncate" style={{ mixWidth:'300px',maxWidth: '500px', width:'400px' }} title={info.getValue()}>{info.getValue()}</div>,
+            meta: { enableGlobalFilter: true },
+            maxSize: 500,
+            size:400,
+            minSize:300,
+            // Allow searching by Chantier description
         },
         {
             accessorKey: 'created_at',
             header: 'Créé le',
-            cell: info => info.table.options.meta?.formatDate(info.getValue()),
-            size: 150,
+            cell: info => info.getValue().slice(0,10),
+            size: 120,
             meta: { enableGlobalFilter: false }
         },
         // 'actions' column added automatically by DynamicTable
     ], []);
 
     // --- DynamicTable Configuration ---
-    const defaultCols = useMemo(() => [ 'Code_programme', 'Description', 'Chantier_Description', 'created_at', 'actions' ], []);
+    const defaultCols = useMemo(() => [ 'Code_Programme', 'Description', 'Chantier_Description', 'created_at', 'actions' ], []);
     const searchExclusions = useMemo(() => [ 'Id', 'Id_Chantier', 'updated_at' ], []);
 
     return (

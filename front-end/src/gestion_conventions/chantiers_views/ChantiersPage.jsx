@@ -13,15 +13,15 @@ const ChantiersPage = () => {
     const chantierColumns = useMemo(() => [
         {
             accessorKey: 'Code_Chantier',
-            header: 'Code Chantier',
-            size: 150,
+            header: 'Code',
+            size: 50,
             meta: { enableGlobalFilter: true }
         },
         {
             accessorKey: 'Description',
             header: 'Description',
-            cell: info => <div className="text-truncate" style={{ maxWidth: '300px' }} title={info.getValue()}>{info.getValue() || '-'}</div>,
-            size: 350,
+            cell: info => <div className="text-truncate" title={info.getValue()}>{info.getValue() || '-'}</div>,
+            size: 400,
             meta: { enableGlobalFilter: true }
         },
         {
@@ -30,8 +30,10 @@ const ChantiersPage = () => {
             id: 'Domaine_Description', // Unique ID for the column
             header: 'Domaine',
             accessorFn: row => row.domaine?.Description || row.id_domaine || '-', // Access nested data safely, fall back to id_domaine if needed
-            cell: info => <div className="text-truncate" style={{ maxWidth: '250px' }} title={info.getValue()}>{info.getValue()}</div>,
-            meta: { enableGlobalFilter: true } // Allow searching by Domaine description
+            cell: info => <div className="text-truncate" title={info.getValue()}>{info.getValue()}</div>,
+            meta: { enableGlobalFilter: true }, // Allow searching by Domaine description
+            size: 100,
+
         },
         {
             accessorKey: 'created_at',
@@ -44,7 +46,7 @@ const ChantiersPage = () => {
     ], []);
 
     // --- DynamicTable Configuration ---
-    const defaultCols = useMemo(() => [ 'Code_Dhantier', 'Description', 'Domaine_Description', 'actions' ], []);
+    const defaultCols = useMemo(() => [ 'Code_Chantier', 'Description', 'Domaine_Description', 'actions' ], []);
     // Exclude fields not suitable for simple text search or handled differently
     const searchExclusions = useMemo(() => [ 'Id', 'Id_Domaine', 'created_at', 'updated_at' ], []);
 

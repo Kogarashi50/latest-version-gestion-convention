@@ -2,37 +2,38 @@
 
 import React, { useMemo, useCallback } from 'react';
 import DynamicTable from '../components/DynamicTable'; // Adjust path as needed
-import AppelOffreForm from './AppelOffreForm'; // Component for Create/Edit (TO BE CREATED)
-import AppelOffreVisualisation from './AppelOffreVisualisation'; // Component for View (TO BE CREATED)
+// Ensure these point to the updated Form/Visualisation components for JSON provinces
+import AppelOffreForm from './AppelOffreForm';
+import AppelOffreVisualisation from './AppelOffreVisualisation';
 
 // --- UI & Utilities ---
 import Select from 'react-select';
 import { Badge, Form, Button } from 'react-bootstrap';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTimes, faBuilding, faToggleOn, faToggleOff } from '@fortawesome/free-solid-svg-icons';
+import { faTimes, faBuilding, faToggleOn, faToggleOff, faMapMarkedAlt } from '@fortawesome/free-solid-svg-icons'; // Added faMapMarkedAlt
 import { useSearchParams } from 'react-router-dom';
 
 // --- Constants & Helpers ---
 const BASE_API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
-// Reusable formatters (ensure consistency or move to a shared utils file)
+// Reusable formatters
 const formatDate = (dateString) => {
     if (!dateString) return '-';
     try {
         const datePart = dateString.split(' ')[0];
-         if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) { return dateString; } // Return original if format unexpected
-         return new Date(datePart + 'T00:00:00Z').toLocaleDateString('fr-CA'); // Use UTC to avoid timezone shifts, format YYYY-MM-DD
+         if (!/^\d{4}-\d{2}-\d{2}$/.test(datePart)) { return dateString; }
+         return new Date(datePart).toLocaleDateString('fr-CA');
     } catch (e) { console.error("Date format error:", dateString, e); return dateString; }
 };
 
 const formatCurrency = (value) => {
     if (value == null || value === '' || isNaN(Number(value))) return '-';
     try {
-        // Using fr-MA for Moroccan Dirham formatting
         return parseFloat(value).toLocaleString('fr-MA', { style: 'currency', currency: 'MAD', minimumFractionDigits: 2 });
     } catch (e) { console.error("Currency format error:", value, e); return String(value); }
 };
 
+// ENUM Options for Filters
 const CATEGORIE_OPTIONS = [
     { value: 'Travaux', label: 'Travaux' },
     { value: 'Etudes', label: 'Etudes' },
@@ -41,9 +42,22 @@ const CATEGORIE_OPTIONS = [
 ];
 
 const PORTAIL_FILTER_OPTIONS = [
-    { value: 'true', label: 'Oui' }, // Use strings as values if filter expects string
+    { value: 'true', label: 'Oui' },
     { value: 'false', label: 'Non' }
 ];
+
+// Static province options for filtering (if needed)
+const PROVINCE_FILTER_OPTIONS = [
+    { value: 'Berkane', label: 'Berkane' },
+    { value: 'Driouch', label: 'Driouch' },
+    { value: 'Figuig', label: 'Figuig' },
+    { value: 'Guercif', label: 'Guercif' },
+    { value: 'Jerada', label: 'Jerada' },
+    { value: 'Nador', label: 'Nador' },
+    { value: 'Oujda-Angad', label: 'Oujda-Angad' },
+    { value: 'Taourirt', label: 'Taourirt' }
+];
+
 // --- End Helpers ---
 
 // --- Main Page Component ---
@@ -56,62 +70,83 @@ const AppelOffrePage = () => {
     const appelOffreColumns = useMemo(() => [
         { accessorKey: 'numero', header: 'N° AO', size: 130, meta: { align: 'left', enableGlobalFilter: true } },
         {
-            accessorKey: 'intitule', header: 'Intitulé', size: 200,
+            accessorKey: 'intitule', header: 'Intitulé', size: 400,
             meta: { align: 'left', enableGlobalFilter: true },
-            cell: info => <div className="text-truncate" style={{ maxWidth: '200px' }} title={info.getValue()}>{info.getValue()}</div>,
+            cell: info => <div className="text-truncate" style={{ maxWidth: '400px' }} title={info.getValue()}>{info.getValue()}</div>,
         },
         {
             accessorKey: 'categorie', header: 'Catégorie', size: 100, filterFn: 'equalsString',
             meta: { align: 'center', enableGlobalFilter: true },
         },
         {
-            id: 'provinceName', // Unique column ID
-            header: 'Province',
-            size: 130,
-            accessorFn: row => row.province?.Description.replace('Province:','').trim(), // Access nested data: check 'province' and 'Description' names
+            // --- UPDATED Province Column for JSON Array ---
+            id: 'provincesList', // Unique column ID
+            header: 'Province(s)',
+            size: 180, // Adjust size if needed
+            accessorKey: 'provinces', // Access the array directly
             cell: info => {
-                const provinceName = info.getValue();
-                return provinceName
-                    ? <div className="text-truncate" style={{ maxWidth: '130px' }} title={provinceName}>
-                          <FontAwesomeIcon icon={faBuilding} className="me-1 text-muted small" /> {provinceName}
-                      </div>
-                    : '-';
+                const provincesArray = info.getValue(); // Gets the array ['Prov1', 'Prov2', ...] or null/[]
+                if (!provincesArray || provincesArray.length === 0) {
+                    return '-';
+                }
+                // Display as badges or comma-separated list
+                return (
+                    <div className="d-flex flex-wrap gap-1" style={{ maxWidth: '180px' }}>
+                        {provincesArray.map((prov, index) => (
+                            <Badge key={index} pill bg="light" text="dark" className="text-truncate" title={prov}>
+                               {prov}
+                            </Badge>
+                        ))}
+                    </div>
+                );
+                // Alternative: Comma separated string
+                // return <div className="text-truncate" style={{ maxWidth: '180px' }} title={provincesArray.join(', ')}>{provincesArray.join(', ')}</div>;
             },
-            meta: { align: 'left', enableGlobalFilter: true }, // Allow filtering/searching by province name
+            // Note: Filtering directly on a JSON array might be complex/inefficient depending on DynamicTable capabilities.
+            // It might be better to filter this server-side if needed.
+            meta: { align: 'left', enableGlobalFilter: true }, // Enable global search (might search the stringified JSON)
+            // --- END UPDATED Province Column ---
         },
         {
             accessorKey: 'estimation_HT', header: 'Estimation HT', size: 150,
             cell: info => formatCurrency(info.getValue()),
-            meta: { align: 'right', enableGlobalFilter: false } // Usually don't globally filter currency
+            meta: { align: 'right', enableGlobalFilter: false }
         },
         {
             accessorKey: 'date_ouverture', header: 'Date Ouverture', size: 140,
             cell: info => formatDate(info.getValue()),
-            meta: { align: 'center', enableGlobalFilter: false } // Usually don't globally filter dates like this
+            meta: { align: 'center', enableGlobalFilter: false }
         },
         {
-            accessorKey: 'lancement_portail', header: 'Portail', size: 80, filterFn: 'equalsString', // Use string comparison if values are 'true'/'false' strings
+            accessorKey: 'lancement_portail', header: 'Portail', size: 80, filterFn: 'equalsString',
             cell: info => {
-                const isOnPortail = info.getValue(); // Should be boolean true/false from model cast
+                const isOnPortail = info.getValue();
                 return isOnPortail === true ?
                     <Badge bg="success" text="white" className="w-100"><FontAwesomeIcon icon={faToggleOn} /> Oui</Badge> :
                     <Badge bg="secondary" text="white" className="w-100"><FontAwesomeIcon icon={faToggleOff} /> Non</Badge>;
             },
-            meta: { align: 'center', enableGlobalFilter: true }, // Allow filtering/searching by boolean state
+            meta: { align: 'center', enableGlobalFilter: true },
         },
     ], []); // Dependency array is empty
 
     // --- Filter Rendering Function ---
+    // Added Province Filter (Single Select for filtering, not multi)
     const renderAppelOffreFilters = useCallback((table) => {
         if (!table) return null;
         const categorieColumn = table.getColumn('categorie');
         const portailColumn = table.getColumn('lancement_portail');
+        // Add province filter column if you want to filter by ONE province at a time
+        const provinceColumn = table.getColumn('provincesList'); // Use the column ID
         const isAnyColumnFiltered = table.getState().columnFilters.length > 0;
 
-        // Get current filter value for portail (might be boolean or undefined)
         const currentPortailFilterValue = portailColumn?.getFilterValue();
-        // Find the matching option object based on the filter value (needs string comparison)
         const selectedPortailOption = PORTAIL_FILTER_OPTIONS.find(option => option.value === String(currentPortailFilterValue)) || null;
+
+        // Get current province filter value (will be a string or undefined)
+        const currentProvinceFilterValue = provinceColumn?.getFilterValue();
+        console.log("Current Province Filter Value:", provinceColumn);
+        const selectedProvinceFilterOption = PROVINCE_FILTER_OPTIONS.find(option => currentProvinceFilterValue==option.value ) || null;
+
 
         return (
             <Form>
@@ -125,8 +160,27 @@ const AppelOffrePage = () => {
                        onChange={option => categorieColumn?.setFilterValue(option?.value ?? undefined)}
                        placeholder="Toutes Catégories..." isClearable
                        styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }} menuPortalTarget={document.body}
-                       aria-label="Filtrer par catégorie d'appel d'offre"
+                       aria-label="Filtrer par catégorie"
                    />
+                </Form.Group>
+
+                {/* Province Filter (Single Select) */}
+                <Form.Group controlId="filterProvinceAO" className="mb-3">
+                    <Form.Label className="small mb-1 fw-bold">Contient Province</Form.Label>
+                    <Select
+                        inputId="filterProvinceAOSelect"
+                        options={PROVINCE_FILTER_OPTIONS}
+                        value={selectedProvinceFilterOption}
+                        // Important: How filtering JSON array works depends HEAVILY on DynamicTable's
+                        // filter functions OR requires server-side filtering implementation.
+                        // This sets the filter value; DynamicTable needs to know how to use it.
+                        // If DynamicTable doesn't support JSON contains filtering, this filter
+                        // might need to be handled via API request parameters instead.
+                        onChange={option => provinceColumn?.setFilterValue(option?.value ?? undefined)}
+                        placeholder="Toutes Provinces..." isClearable
+                        styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }} menuPortalTarget={document.body}
+                        aria-label="Filtrer par province"
+                    />
                 </Form.Group>
 
                 {/* Lancement Portail Filter */}
@@ -135,11 +189,8 @@ const AppelOffrePage = () => {
                    <Select
                        inputId="filterPortailSelect"
                        options={PORTAIL_FILTER_OPTIONS}
-                       value={selectedPortailOption} // Use the found option object
-                       onChange={option => {
-                           // Set filter value as string ('true'/'false') or undefined if cleared
-                           portailColumn?.setFilterValue(option?.value ?? undefined);
-                       }}
+                       value={selectedPortailOption}
+                       onChange={option => portailColumn?.setFilterValue(option?.value ?? undefined)}
                        placeholder="Oui / Non / Tous..." isClearable
                        styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }} menuPortalTarget={document.body}
                        aria-label="Filtrer par lancement sur portail"
@@ -152,73 +203,54 @@ const AppelOffrePage = () => {
                 </Button>
             </Form>
         );
-    }, []); // Dependency array is empty
+    }, []);
 
 
     // --- DynamicTable Configuration ---
-    // Define which columns are visible by default
     const defaultVisibleCols = useMemo(() => [
         'numero',
         'intitule',
         'categorie',
-        'provinceName', // Show the province name
+        'provincesList', // Show the list of provinces
         'estimation_HT',
         'date_ouverture',
         'lancement_portail',
-        'actions', // Keep actions column visible
+        'actions',
     ], []);
 
     const handleFormClose = () => {
-        setSearchParams({}); // Clear URL params to return to table view
-        // Optional: Add logic here or inside DynamicTable to trigger data refresh if needed
+        setSearchParams({});
     };
 
     return (
-        // Ensure parent container allows this div to take full height if needed
         <div style={{ height: 'calc(100vh - 56px)', padding: '1rem', overflowY: 'auto' }}>
               {isCreating ? (
-                  // Show the form if action=create
                   <AppelOffreForm
-                       // Pass necessary props to the Form component
                        onClose={handleFormClose}
-                       onItemCreated={handleFormClose} // Close form on successful creation
+                       onItemCreated={handleFormClose}
                        baseApiUrl={BASE_API_URL}
-                       // itemId will be undefined/null in create mode
                    />
               ) : (
-                  // Show the table view by default
                   <DynamicTable
-                      // --- Data Fetching ---
-                      fetchUrl="/appel-offres" // API endpoint for fetching the list
-                      // Assuming the Laravel paginator response: { data: [...], links: ..., meta: ... }
-                      // DynamicTable needs to be adapted or use a wrapper if it only expects an array.
-                      // If DynamicTable handles paginators, 'data' might be the key. Verify this.
-                      dataKey="data" // Key holding the array of items in the response
-                      deleteUrlBase="/appel-offres" // Base URL for DELETE requests
+                      fetchUrl="/appel-offres"
+                      // Use the key the controller returns for the list
+                      dataKey="appel_offres" // Ensure this matches controller response
+                      deleteUrlBase="/appel-offres"
                       baseApiUrl={BASE_API_URL}
-
-                      // --- Table Definition ---
-                      columns={appelOffreColumns}
+                      columns={appelOffreColumns} // Use updated column definitions
                       itemName="Appel d'Offre"
                       itemNamePlural="Appels d'Offre"
-                      identifierKey="id" // Primary key field name
-                      displayKeyForDelete="numero" // Field to show in delete confirmation
-
-                      // --- Features ---
+                      identifierKey="id"
+                      displayKeyForDelete="numero"
                       itemsPerPage={10}
                       defaultVisibleColumns={defaultVisibleCols}
-                      renderFilters={renderAppelOffreFilters} // Pass the filter rendering function
-                      enableGlobalSearch={true} // Enable global search input
-
-                      // --- Component Integration ---
-                      // Pass the components DynamicTable should use for actions
+                      renderFilters={renderAppelOffreFilters}
+                      enableGlobalSearch={true}
                       CreateComponent={AppelOffreForm}
                       ViewComponent={AppelOffreVisualisation}
                       EditComponent={AppelOffreForm}
-
-                      // --- Styling & Misc ---
-                      actionColumnWidth={90} // Adjust width for action buttons if needed
-                      tableClassName="table-striped table-hover" // Standard Bootstrap classes
+                      actionColumnWidth={90}
+                      tableClassName="table-striped table-hover"
                   />
               )}
         </div>

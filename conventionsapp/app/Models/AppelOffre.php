@@ -3,16 +3,18 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo; // Import the BelongsTo relationship type
+// Need Casts\AsArrayObject or Casts\AsCollection for easier JSON handling
+use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 
 /**
  * App\Models\AppelOffre
  *
  * Represents an 'appel_offre' (Call for Tender) record in the database.
+ * Stores multiple province names in a JSON column.
  *
  * @property int $id
  * @property string $categorie Type of tender (Travaux, Etudes, Services, Fournitures)
- * @property int|null $province_id Foreign key referencing the province
+ * @property array|null $provinces Array of province/prefecture names (stored as JSON)
  * @property string $numero Unique tender reference number
  * @property string $intitule Title/Subject of the tender
  * @property float|null $estimation Total estimated cost (TTC?) - nullable
@@ -27,7 +29,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo; // Import the BelongsTo re
  * @property \Illuminate\Support\Carbon|null $created_at Timestamp of creation
  * @property \Illuminate\Support\Carbon|null $updated_at Timestamp of last update
  *
- * @property-read \App\Models\Province|null $province The province associated with this tender.
  */
 class AppelOffre extends Model
 {
@@ -40,22 +41,20 @@ class AppelOffre extends Model
 
     /**
      * Indicates if the model should be timestamped.
-     * (Handled automatically by Laravel if created_at/updated_at columns exist)
      *
      * @var bool
      */
-    public $timestamps = true; // Schema has created_at and updated_at
+    public $timestamps = true;
 
     /**
      * The attributes that are mass assignable.
-     * These are the fields that can be filled using AppelOffre::create([...]) or $appelOffre->fill([...])
-     * Excludes id, created_at, updated_at which are typically handled automatically.
+     * Replace 'province' ENUM with 'provinces' JSON.
      *
      * @var array<int, string>
      */
     protected $fillable = [
         'categorie',
-        'province_id',
+        'provinces', // <-- CHANGED to plural JSON field name
         'numero',
         'intitule',
         'estimation',
@@ -67,41 +66,33 @@ class AppelOffre extends Model
         'last_session_op',
         'lancement_portail',
         'date_lancement_portail',
+        'date_publication', // <-- ADDED to fillable
+
     ];
 
     /**
      * The attributes that should be cast to native types.
-     * Improves data handling and consistency.
+     * Cast the 'provinces' column to a PHP array.
      *
      * @var array<string, string>
      */
     protected $casts = [
-        'estimation' => 'decimal:2', // Cast decimal with 2 places
+        // Cast the JSON column to a PHP array when accessed/set
+        'provinces' => 'array', 
+        'date_publication' => 'date:Y-m-d', // <-- ADDED cast for datetime column
+
+        'estimation' => 'decimal:2',
         'estimation_HT' => 'decimal:2',
         'montant_TVA' => 'decimal:2',
         'duree_execution' => 'integer',
-        'date_verification' => 'date:Y-m-d', // Cast to Carbon date object (YYYY-MM-DD)
+        'date_verification' => 'date:Y-m-d',
         'date_ouverture' => 'date:Y-m-d',
         'last_session_op' => 'date:Y-m-d',
-        'lancement_portail' => 'boolean', // Cast to boolean (true/false)
+        'lancement_portail' => 'boolean',
         'date_lancement_portail' => 'date:Y-m-d',
-        // 'created_at' and 'updated_at' are automatically handled as Carbon instances by Laravel
-        // 'categorie' is an ENUM, typically handled as a string in PHP/Eloquent
     ];
 
     // --- Relationships ---
+    // No province relationship needed as it's stored directly.
 
-    /**
-     * Get the Province that this AppelOffre belongs to.
-     * Defines the inverse of a one-to-many relationship.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function province(): BelongsTo
-    {
-        // Assuming the Province model exists at App\Models\Province
-        // Foreign key on appel_offre table: 'province_id' (matches convention)
-        // Owner key (Primary Key) on province table: 'Id' (based on your Province model example)
-        return $this->belongsTo(Province::class, 'province_id', 'Id');
-    }
 }

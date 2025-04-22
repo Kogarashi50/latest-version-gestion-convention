@@ -217,7 +217,7 @@ const MarchePublicVisualisation = ({ itemId, onClose, baseApiUrl }) => {
 
     if (error) { return <Alert variant="danger" className="m-3">Erreur: {error}</Alert>; }
     if (!marcheData) { return <Alert variant="warning" className="m-3">Aucune donnée principale de marché trouvée.</Alert>; }
-
+console.log('mode passation :',marcheData.mode_passation)
     // Main content render
     return (
         <div className='px-4'>
@@ -250,14 +250,20 @@ const MarchePublicVisualisation = ({ itemId, onClose, baseApiUrl }) => {
                         conventionName, // Display fetched name
                         (name) => name ? // Add link icon if name exists
                             <span><FontAwesomeIcon icon={faLink} className="me-2 text-warning"/>{name}</span> : '-',
-                        4,4 // Take more space
+                        3,3 // Take more space
                     )}
+                    {renderDetail(
+                                    "Appel d'Offre Réf.",
+                                    // Access nested AO data safely
+                                    marcheData.appel_offre?.numero,
+                                    (num) => num ? <span><FontAwesomeIcon icon={faLink} className="me-2 text-warning"/>{num}</span> : '-',3,3
+                                )}
                     {/* Other Details */}
-                    {renderDetail("Type", marcheData.type_marche, null, 4, 4)}
+                    {renderDetail("Type", marcheData.type_marche, null, 3,3)}
                     {renderDetail("Statut", marcheData.statut, (status) => {
                          const color = getStatusColor(status);
                          return <Badge bg={color} text={color === 'warning' || color === 'light' ? 'dark' : 'white'}>{status}</Badge>;
-                     }, 4, 4)}</Row></Col>
+                     }, 3,3)}</Row></Col>
                      <Col xs={12} className="mb-3 data-point">
                      <div  className='d-flex w-100 justify-content-between '>
                      <div className=' p-3 m-2 bg-white rounded-5 shadow-sm w-100'>
@@ -269,11 +275,40 @@ const MarchePublicVisualisation = ({ itemId, onClose, baseApiUrl }) => {
                     <div className='p-4 m-2 bg-white rounded-5 shadow-sm w-100' >{renderDetail2("Source Financement", marcheData.source_financement, null)}
                     {renderDetail2("Attributaire(s) Principal", marcheData.attributaire, null, )}
                     {renderDetail2("Date Publication", marcheData.date_publication, formatDate)}
+                    
                     {renderDetail2("Date Limite Offres", marcheData.date_limite_offres, formatDate)}</div>
-                    <div className=' p-4 m-2 bg-white rounded-5 shadow-sm w-100' >{renderDetail2("Date Notification", marcheData.date_notification, formatDate)}
-                    {renderDetail2("Date Début Exécution", marcheData.date_debut_execution, formatDate)}
-                    {renderDetail2("Durée (jours)", marcheData.duree_marche, null)}</div></div>
+                   
+                    </div>
+                    
                     </Col>
+                </Row>
+                <Row>
+                    <Col xs={6}>
+                <div className=' p-4 m-2 bg-white rounded-5 shadow-sm flex-fill w-100'> {/* Added flex-fill */}
+                               
+                                {renderDetail2("Date Ouverture Plis", marcheData.date_ouverture_plis, formatDate)}
+                                {renderDetail2("Date Fin Session Ouverture", marcheData.date_fin_ouverture, formatDate)}
+                                {renderDetail2(
+                                     "Avancement Physique",
+                                     marcheData.avancement_physique,
+                                     // Format as percentage
+                                     (val) => `${parseFloat(val || 0).toFixed(2)} %`
+                                )}
+                                {renderDetail2(
+                                     "Avancement Financier",
+                                     marcheData.avancement_financier,
+                                     // Format as percentage
+                                     (val) => `${parseFloat(val || 0).toFixed(2)} %`
+                                 )}
+                                {renderDetail2("Date Engagement Trésorerie", marcheData.date_engagement_tresorerie, formatDate)}
+                             </div>
+                             </Col>
+                             <Col xs={6}>
+                             <div className=' p-4 m-2 bg-white rounded-5 shadow-sm w-100 flex-fill' >{renderDetail2("Date Notification", marcheData.date_notification, formatDate)}
+                    {renderDetail2("Date Début Exécution", marcheData.date_debut_execution, formatDate)}
+                    {renderDetail2("Durée (jours)", marcheData.duree_marche, null)}</div>
+                   
+                             </Col>
                 </Row>
 
                 {/* Show spinner while loading Lots/Files/Convention */}

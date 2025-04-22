@@ -37,12 +37,14 @@ class MarchePublicController extends Controller
             // Verify relationship names and fields for eager loading and searching
             $conventionRelationshipName = 'convention'; // CHECK: Method name in MarchePublic model linking to Convention
             $conventionTitleField = 'Intitule';       // CHECK: Actual title column name in 'conventions' table
-
+            $appelOffreRelationshipName = 'appelOffre';
+            $appelOffreNumeroField = 'numero'; 
             // Eager load required relationships, including files for URL generation
             $query = MarchePublic::with([
                 'lots.fichiersJoints', // Files associated with lots
                 'fichiersJointsGeneraux', // General files directly linked to Marche
-                "{$conventionRelationshipName}:id,{$conventionTitleField}" // Load convention ID and Title
+                "{$conventionRelationshipName}:id,{$conventionTitleField}",
+                "{$appelOffreRelationshipName}:id,{$appelOffreNumeroField}"  // Load convention ID and Title
             ]);
 
             // --- Sorting Logic ---
@@ -58,7 +60,8 @@ class MarchePublicController extends Controller
 
             // --- Searching Logic ---
             if ($search = $request->query('search')) {
-                $query->where(function($q) use ($search, $conventionRelationshipName, $conventionTitleField) {
+                $query->where(function($q) use ($search, $conventionRelationshipName, $appelOffreRelationshipName, // <-- Pass new variable
+                $appelOffreNumeroField , $conventionTitleField) {
                     // CHECK: Ensure these columns exist on 'marche_public' table
                     $q->where('numero_marche', 'like', "%{$search}%")
                       ->orWhere('intitule', 'like', "%{$search}%")
@@ -67,6 +70,9 @@ class MarchePublicController extends Controller
                     // Search related convention title using verified names
                     $q->orWhereHas($conventionRelationshipName, function ($subQuery) use ($search, $conventionTitleField) {
                         $subQuery->where($conventionTitleField, 'like', "%{$search}%"); // Uses checked field name
+                    });
+                    $q->orWhereHas($appelOffreRelationshipName, function ($subQuery) use ($search, $appelOffreNumeroField) {
+                        $subQuery->where($appelOffreNumeroField, 'like', "%{$search}%"); // Uses checked field name
                     });
                 });
             }
@@ -126,9 +132,9 @@ class MarchePublicController extends Controller
         $validator = Validator::make($request->all(), [
             'numero_marche' => 'required|string|max:50|unique:marche_public,numero_marche',
             'intitule' => 'required|string',
-            'type_marche' => ['required', Rule::in(['Travaux', 'Fournitures', 'Services'])],
-            'procedure_passation' => 'nullable|string|max:100',
-            'mode_passation' => 'nullable|string|max:100',
+            'type_marche' => ['required', Rule::in(['Travaux', 'Fournitures', 'Services','Etudes'])],
+            'procedure_passation' => 'required|string|max:100',
+            'mode_passation' => 'required|string|max:100',
             'budget_previsionnel' => 'nullable|numeric|min:0',
             'montant_attribue' => 'nullable|numeric|min:0',
             'source_financement' => 'nullable|string|max:255',
@@ -139,7 +145,13 @@ class MarchePublicController extends Controller
             'date_debut_execution' => 'nullable|date_format:Y-m-d|after_or_equal:date_notification',
             'duree_marche' => 'nullable|integer|min:0',
             'statut' => ['nullable', Rule::in(['En préparation', 'En cours', 'Terminé', 'Résilié'])],
-            'id_convention' => ['nullable', 'integer', Rule::exists('convention', 'id')], // CHECK Table and Column names
+            'id_convention' => ['nullable', 'integer', Rule::exists('convention', 'id')],
+            'ref_appelOffre' => ['nullable', 'integer', Rule::exists('appel_offre', 'id')], // Ensures the ID exists in appel_offre table
+            'date_ouverture_plis' => 'nullable|date_format:Y-m-d',
+            'date_fin_ouverture' => 'nullable|date_format:Y-m-d|after_or_equal:date_ouverture_plis', // Logical check
+            'avancement_physique' => 'nullable|numeric|min:0|max:100', // Assuming percentage 0-100
+            'avancement_financier' => 'nullable|numeric|min:0|max:100', // Assuming percentage 0-100
+            'date_engagement_tresorerie' => 'nullable|date_format:Y-m-d', // CHECK Table and Column names
             'lots_data' => 'nullable|string', // Validate as string initially
             'lot_files' => 'nullable|array',
             'lot_files.*' => 'nullable|array',
@@ -292,7 +304,7 @@ class MarchePublicController extends Controller
             Log::info("Store transaction committed successfully for Marche ID: {$marche->id} (Direct Public Storage).");
 
             // Load relations for response
-            $marche->load('lots.fichiersJoints', 'fichiersJointsGeneraux', 'convention');
+            $marche->load('lots.fichiersJoints', 'fichiersJointsGeneraux', 'convention', 'appelOffre');
 
             // --- Add Public URLs to response ---
              $appBaseUrl = rtrim(config('app.url', 'http://localhost:8000'), '/');
@@ -340,7 +352,7 @@ class MarchePublicController extends Controller
         Log::info("Fetching MarchePublic ID: {$marches_public->id} (Direct Public Storage)...");
         try {
             // Eager load files for URL generation
-             $marches_public->load(['lots.fichiersJoints', 'fichiersJointsGeneraux', 'convention']); // Ensure all needed relations are loaded
+             $marches_public->load(['lots.fichiersJoints', 'fichiersJointsGeneraux', 'convention', 'appelOffre']); // Ensure all needed relations are loaded
 
               // --- Add Public URLs ---
              $appBaseUrl = rtrim(config('app.url', 'http://localhost:8000'), '/');
@@ -387,7 +399,7 @@ class MarchePublicController extends Controller
          $validator = Validator::make($request->all(), [
             'numero_marche' => ['required','string','max:50', Rule::unique('marche_public','numero_marche')->ignore($marches_public->id)],
             'intitule' => 'required|string',
-            'type_marche' => ['required', Rule::in(['Travaux', 'Fournitures', 'Services'])],
+            'type_marche' => ['required', Rule::in(['Travaux', 'Fournitures', 'Services','Etudes'])],
             'procedure_passation' => 'nullable|string|max:100',
             'mode_passation' => 'nullable|string|max:100',
             'budget_previsionnel' => 'nullable|numeric|min:0',
@@ -400,7 +412,13 @@ class MarchePublicController extends Controller
             'date_debut_execution' => 'nullable|date_format:Y-m-d|after_or_equal:date_notification',
             'duree_marche' => 'nullable|integer|min:0',
             'statut' => ['nullable', Rule::in(['En préparation', 'En cours', 'Terminé', 'Résilié'])],
-            'id_convention' => ['nullable', 'integer', Rule::exists('convention', 'id')], // CHECK Table and Column names
+            'id_convention' => ['nullable', 'integer', Rule::exists('convention', 'id')],
+            'ref_appelOffre' => ['nullable', 'integer', Rule::exists('appel_offre', 'id')],
+            'date_ouverture_plis' => 'nullable|date_format:Y-m-d',
+            'date_fin_ouverture' => 'nullable|date_format:Y-m-d|after_or_equal:date_ouverture_plis',
+            'avancement_physique' => 'nullable|numeric|min:0|max:100',
+            'avancement_financier' => 'nullable|numeric|min:0|max:100',
+            'date_engagement_tresorerie' => 'nullable|date_format:Y-m-d', // CHECK Table and Column names
             'lots_data' => 'nullable|string', // Validate as string initially
             'lot_files' => 'nullable|array', // New files are optional
             'lot_files.*' => 'nullable|array',
@@ -609,7 +627,7 @@ class MarchePublicController extends Controller
             // --- End Delete OLD Files ---
 
             // Reload relations and add URLs for response
-            $marches_public->load('lots.fichiersJoints', 'fichiersJointsGeneraux', 'convention');
+            $marches_public->load('lots.fichiersJoints', 'fichiersJointsGeneraux', 'convention', 'appelOffre');
              $appBaseUrl = rtrim(config('app.url', 'http://localhost:8000'), '/');
              $responseData = $marches_public->toArray();
              // Add URLs
