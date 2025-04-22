@@ -74,7 +74,7 @@ const DynamicTable = ({
     fetchUrl, dataKey, deleteUrlBase, columns: propColumns, itemName, itemNamePlural,
     // --- Optional Configuration ---
     identifierKey = 'id', displayKeyForDelete, defaultVisibleColumns, globalSearchExclusions = DEFAULT_GLOBAL_SEARCH_EXCLUSIONS, itemsPerPage = DEFAULT_ITEMS_PER_PAGE,
-    customFilterFunctions = {}, baseApiUrl = 'http://192.168.30.241:81/api', enableExport = true, // Added enableExport prop
+    customFilterFunctions = {}, baseApiUrl = 'http://localhost:8000/api', enableExport = true, // Added enableExport prop
     // --- Component Injection ---
     CreateComponent, ViewComponent, EditComponent,
     renderFilters, // Function: (tableInstance) => JSX (Renders the filter controls)
@@ -500,7 +500,7 @@ DynamicTable.defaultProps = {
   identifierKey: 'id',
   itemsPerPage: DEFAULT_ITEMS_PER_PAGE,
   globalSearchExclusions: DEFAULT_GLOBAL_SEARCH_EXCLUSIONS,
-  baseApiUrl: 'http://192.168.30.241:81/api',
+  baseApiUrl: 'http://localhost:8000/api',
   enableExport: true, // Default export to true
 };
 

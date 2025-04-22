@@ -29,7 +29,7 @@ const EngagementForm = ({
     onClose,
     onItemCreated,
     onItemUpdated,
-    baseApiUrl = 'http://192.168.30.241:81'
+    baseApiUrl = 'http://localhost:8000'
 }) => {
     // State using EXACT casing from schema
     const [formData, setFormData] = useState({

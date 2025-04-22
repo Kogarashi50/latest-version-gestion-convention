@@ -109,11 +109,11 @@ const costRangeFilterFn = (row, columnId, filterValue) => {
 // --- Component Definition ---
 const ConventionsPage = () => {
     // Define Base URLs
-    const BASE_API_URL = 'http://192.168.30.241:81/api';
+    const BASE_API_URL = 'http://localhost:8000/api';
     const [searchParams, setSearchParams] = useSearchParams();
     const action = searchParams.get('action');
     const isCreating = action === 'create';
-    // const STORAGE_BASE_URL = 'http://192.168.30.241:81/api'; // Base for accessing stored files (public path)
+    // const STORAGE_BASE_URL = 'http://localhost:8000/api'; // Base for accessing stored files (public path)
 
     // --- State for Select Options & Partner Lookup ---
     const [allPartenairesOptions, setAllPartenairesOptions] = useState([]); // For partner name lookup in table column
@@ -160,7 +160,8 @@ const ConventionsPage = () => {
 
     // --- Column Definition ---
     const conventionColumns = useMemo(() => [
-        { accessorKey: 'Code', header: 'Code',  meta: { enableGlobalFilter: true } },
+        { accessorKey: 'Code', header: 'Code',  meta: { enableGlobalFilter: true }
+    , size: 80, minSize: 60, maxSize: 150  },
         // Display Documents Count/Icon
         {
             id: 'documents',
@@ -186,15 +187,19 @@ const ConventionsPage = () => {
         {
             accessorKey: 'Intitule',
             header: 'Intitulé',
-            cell: info => <div className="text-truncate" style={{ maxWidth: '180px' }} title={info.getValue()}>{info.getValue() || '-'}</div>,
-            meta: { enableGlobalFilter: true }
+            cell: info => <div className="text-truncate" style={{ maxWidth: '300px', minWidth: '100px', width:'250px' }} title={info.getValue()}>{info.getValue() || '-'}</div>,
+            meta: { enableGlobalFilter: true },
+             size: 250, minSize: 150, maxSize: 300  
         },
         {
             id: 'programme',
             header: 'Programme',
             accessorFn: row => row.programme?.Description, // Safely access nested property
-            cell: info => <div className="text-truncate" style={{ maxWidth: '180px' }} title={info.getValue()}>{info.getValue() || '-'}</div>,
-            meta: { enableGlobalFilter: true }
+            cell: info => <div className="text-truncate"  style={{ maxWidth: '300px', minWidth: '100px', width:'250px' }}  title={info.getValue()}>{info.getValue() || '-'}</div>,
+            meta: { enableGlobalFilter: true },
+            size: 250, minSize: 150, maxSize: 300  
+
+
         },
         // --- Projet Column ---
         {
@@ -207,9 +212,12 @@ const ConventionsPage = () => {
                 const displayText = projet
                     ? `${projet.Code_Projet || ''} - ${projet.Nom_Projet || 'N/A'}`.replace(/^ - | - $/, '').trim() // Combine, remove leading/trailing separators
                     : '-'; // Fallback if no projet linked
-                return <div className="text-truncate" style={{ maxWidth: '180px' }} title={displayText}>{displayText}</div>;
+                return <div className="text-truncate"  style={{ maxWidth: '300px', minWidth: '100px', width:'250px' }} title={displayText}>{displayText}</div>;
             },
-            meta: { enableGlobalFilter: true } // Allow searching by project name/code
+            meta: { enableGlobalFilter: true },
+            size: 250, minSize: 150, maxSize: 300  
+
+            // Allow searching by project name/code
         },
         // --- End Projet Column ---
         {
@@ -218,9 +226,10 @@ const ConventionsPage = () => {
             cell: info => {
                 const status = info.getValue();
                 const color = getStatusColor(status);
-                return status ? (<Badge bg={color} text={color === 'warning' || color === 'light' ? 'dark' : 'white'} className="w-100 text-truncate">{status}</Badge>) : '-';
+                return status ? (<Badge bg={color} text={color === 'warning' || color === 'light' ? 'dark' : 'white'} className=" w-100 text-truncate">{status}</Badge>) : '-';
             },
             meta: { enableGlobalFilter: true },
+            size: 135, minSize: 100, maxSize: 170  ,
             filterFn: 'equalsString' // Use table's built-in filter
         },
         {
@@ -235,7 +244,6 @@ const ConventionsPage = () => {
                 }
                 const partnerIDs = idString.split(';').map(id => id.trim()).filter(Boolean);
                 if (partnerIDs.length === 0) return <span className="text-muted small">-</span>;
-
                 const partnerNames = partnerIDs.map(id => {
                     const option = allPartenairesOptions.find(opt => String(opt.value) === String(id));
                     return option ? option.label : `ID ${id}`; // Fallback to ID if not found
@@ -248,7 +256,7 @@ const ConventionsPage = () => {
                     <Stack direction="horizontal" gap={1} style={{ flexWrap: 'wrap', maxWidth: '30px' }}>
                         
                             <Badge bg="dark" text="light" className="border me-1 mb-1" pill >
-                                {partnerNames.length}
+                                {partnerIDs.length}
                             </Badge>
                     </Stack>
                 );
@@ -272,6 +280,8 @@ const ConventionsPage = () => {
         },
         {
             accessorKey: 'Cout_Global',
+            size: 135, minSize: 100, maxSize: 170  ,
+
             header: 'Coût Global',
             cell: info => info.getValue() ? parseFloat(info.getValue()).toLocaleString('fr-MA', { style: 'currency', currency: 'MAD', minimumFractionDigits: 0 }) : '0',
             meta: { enableGlobalFilter: false }, // Use range filter instead
@@ -386,7 +396,8 @@ const ConventionsPage = () => {
     const defaultCols = useMemo(() => [
         'Code', 'Intitule', 'projet', 'Statut', // <-- Added 'projet'
         'Annee_Convention', 'Cout_Global', 
-        'actions'
+        'actions',
+        'partenaires'
     ], []);
     const availableCols = useMemo(() => [ // All possible column keys from data + relationships
         'Code', 'documents', 'Intitule', 'Reference', 'Annee_Convention', 'Objet', 'Objectifs',

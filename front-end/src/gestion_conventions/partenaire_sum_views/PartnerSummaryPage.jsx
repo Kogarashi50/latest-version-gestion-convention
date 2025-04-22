@@ -5,7 +5,7 @@ import { faBalanceScale } from '@fortawesome/free-solid-svg-icons'; // Example i
 
 // --- Constants ---
 // You can define this globally or pass it via props/context if preferred
-const BASE_API_URL = 'http://192.168.30.241:81/api';
+const BASE_API_URL = 'http://localhost:8000/api';
 
 // --- Helper Functions (Reuse or define centrally) ---
 /**

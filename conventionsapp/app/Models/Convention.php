@@ -38,6 +38,7 @@ class Convention extends Model
         'id_projet',
         'annee_convention',
         'objet',
+        'observations',
         'objectifs',
         'localisation',         // String of Province IDs
         'maitre_ouvrage',

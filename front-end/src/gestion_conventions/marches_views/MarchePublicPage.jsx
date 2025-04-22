@@ -13,7 +13,7 @@ import { faTimes, faLink } from '@fortawesome/free-solid-svg-icons'; // Import f
 import { useSearchParams } from 'react-router-dom';
 
 // --- Constants & Helpers ---
-const BASE_API_URL = process.env.REACT_APP_API_URL || 'http://192.168.30.241:81/api';
+const BASE_API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 const formatDate = (dateString) => {
     if (!dateString) return '-';

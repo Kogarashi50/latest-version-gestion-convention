@@ -6,7 +6,7 @@ import ChantierForm from './ChantierForm'; // Adjust path - Create this file nex
 import ChantierVisualisation from './ChantierVisualisation'; // Adjust path - Create this file later
 
 // --- Constants ---
-const BASE_API_URL = 'http://192.168.30.241:81/api'; // Define Base URL
+const BASE_API_URL = 'http://localhost:8000/api'; // Define Base URL
 
 const ChantiersPage = () => {
     // --- Column Definition ---

@@ -6,7 +6,7 @@ import ProgrammeForm from './ProgrammeForm'; // To be created
 import ProgrammeVisualisation from './ProgrammeVisualisation'; // To be created
 
 // --- Constants ---
-const BASE_API_URL = 'http://192.168.30.241:81/api'; // Adjust if different
+const BASE_API_URL = 'http://localhost:8000/api'; // Adjust if different
 
 const ProgrammesPage = () => {
     // --- Column Definition ---

@@ -60,7 +60,7 @@ const typeModificationOptions = [
 ];
 
 // --- Component ---
-const AvenantVisualisation = ({ itemId, onClose, baseApiUrl = 'http://192.168.30.241:81/api' }) => {
+const AvenantVisualisation = ({ itemId, onClose, baseApiUrl = 'http://localhost:8000/api' }) => {
     const [avenantData, setAvenantData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -328,7 +328,7 @@ AvenantVisualisation.propTypes = {
 
 // Default Props if needed
 AvenantVisualisation.defaultProps = {
-     baseApiUrl: 'http://192.168.30.241:81/api',
+     baseApiUrl: 'http://localhost:8000/api',
 };
 
 

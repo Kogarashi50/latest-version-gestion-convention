@@ -88,7 +88,7 @@ const AvenantForm = ({
     onItemCreated,
     onItemUpdated,
     initialConventionId = null,
-    baseApiUrl = 'http://192.168.30.241:81/api'
+    baseApiUrl = 'http://localhost:8000/api'
 }) => {
     // --- State ---
     const initialFormData = useMemo(() => ({
@@ -1077,7 +1077,7 @@ AvenantForm.defaultProps = {
     initialConventionId: null,
     onItemCreated: (createdItem) => console.log('Avenant Created:', createdItem),
     onItemUpdated: (updatedItem) => console.log('Avenant Updated:', updatedItem),
-    baseApiUrl: 'http://192.168.30.241:81/api', // Ensure this matches your API base URL
+    baseApiUrl: 'http://localhost:8000/api', // Ensure this matches your API base URL
 };
 
 export default AvenantForm;

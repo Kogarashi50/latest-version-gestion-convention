@@ -148,32 +148,34 @@ class ConventionController extends Controller
             $validatedData = $request->validate([
                 // Convention Fields
                 'code' => 'required|integer|unique:convention,code',
-                'classification_prov' => 'required|string|max:255',
-                'categorie' => 'required|string|max:255',
+                'classification_prov' => 'required|string',
+                'categorie' => 'required|string',
                 'intitule' => 'required|string',
-                'reference' => 'required|string|max:255',
+                'reference' => 'required|string',
                 'annee_convention' => 'required|integer|digits:4',
                 'objet' => 'required|string',
                 'objectifs' => 'required|string',
-                'localisation' => 'required|string|max:255',
-                'maitre_ouvrage' => 'required|string|max:255',
-                'partenaire' => 'required|string|max:255',
+                'localisation' => 'required|string',
+                'maitre_ouvrage' => 'required|string',
+                'partenaire' => 'required|string',
                 'cout_global' => 'required|numeric|min:0',
                 'cout_cr' => 'required|numeric|min:0',
-                'statut' => 'required|string|max:255',
-                'operationalisation' => 'required|string|max:255',
+                'statut' => 'required|string',
+                'operationalisation' => 'required|string',
                 'id_programme' => 'required|integer|exists:programme,Id',
                 'id_projet' => 'nullable|integer|exists:projet,ID_Projet',
                 'groupe' => 'required|integer',
-                'rang' => 'nullable|string|max:255',
+                'rang' => 'nullable|string',
+                'observations' => 'nullable|string|max:20000', // <<< ADDED Validation
 
                 // --- Files & Partners ---
                 'fichiers' => 'nullable|array', // The array itself is optional
-                'fichiers.*' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,xls,xlsx|max:20480', // Individual files optional + validation
+                'fichiers.*' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,xls,xlsx', // Individual files optional + validation
                 'partner_commitments' => ['required', 'string'],
             ],
             // --- Custom French Validation Messages ---
             [
+                'observations.max' => 'Les observations ne doivent pas dépasser :max caractères.', 
                 'required' => 'Le champ :attribute est obligatoire.',
                 'string'   => 'Le champ :attribute doit être une chaîne de caractères.',
                 'integer'  => 'Le champ :attribute doit être un nombre entier.',
@@ -192,7 +194,6 @@ class ConventionController extends Controller
                 'id_projet.exists' => 'Le projet sélectionné est invalide.',
                 'fichiers.*.file' => 'Chaque élément dans :attribute doit être un fichier valide.', // Added for clarity
                 'fichiers.*.mimes' => 'Type de fichier invalide. Acceptés: PDF, DOC, DOCX, JPG, PNG, XLS, XLSX.',
-                'fichiers.*.max' => 'La taille max par fichier est de 20Mo (20480 Ko).',
                 'partner_commitments.required' => 'Les engagements des partenaires sont requis.',
             ]);
             Log::info('Validation principale réussie (store - fichiers optionnels).');
@@ -221,7 +222,7 @@ class ConventionController extends Controller
                 'Montant_Convenu' => 'required|numeric|min:0',
                 'is_signatory' => 'required|boolean',
                 'date_signature' => [ Rule::requiredIf(function () use ($commitment) { return ($commitment['is_signatory'] ?? false) && !empty($commitment['date_signature']); }), 'nullable', 'date_format:Y-m-d' ],
-                'details_signature' => ['nullable', 'string', 'max:1000'],
+                'details_signature' => ['nullable', 'string'],
             ], [
                 'Id_Partenaire.required' => "Partenaire requis (engagement #".($index + 1).").",
                 'Id_Partenaire.exists' => "Partenaire invalide (engagement #".($index + 1).").",
@@ -232,7 +233,6 @@ class ConventionController extends Controller
                 'is_signatory.boolean' => "Statut signataire invalide (engagement #".($index + 1).").",
                 'date_signature.required_if' => "Date signature requise si signataire (engagement #".($index + 1).").",
                 'date_signature.date_format' => "Format date signature invalide (AAAA-MM-JJ) (engagement #".($index + 1).").",
-                'details_signature.max' => "Détails signature trop longs (max :max caractères) (engagement #".($index + 1).").",
              ]);
             if ($commitmentValidator->fails()) {
                  $partnerIdLog = $commitment['Id_Partenaire'] ?? 'Inconnu';
@@ -499,26 +499,28 @@ class ConventionController extends Controller
         try {
             $validatedData = $request->validate([
                 'code' => ['required','integer', Rule::unique('convention', 'code')->ignore($convention->id)],
-                'classification_prov' => 'required|string|max:255',
-                'categorie' => 'required|string|max:255',
+                'classification_prov' => 'required|string',
+                'categorie' => 'required|string',
                 'intitule' => 'required|string',
-                'reference' => 'required|string|max:255',
-                'annee_convention' => 'required|integer|digits:4',
+                'reference' => 'required|string',
+                'annee_convention' => 'required|integer',
+                'observations' => 'nullable|string|max:20000', // <<< ADDED Validation
+
                 'objet' => 'required|string',
                 'objectifs' => 'required|string',
-                'localisation' => 'required|string|max:255',
-                'maitre_ouvrage' => 'required|string|max:255',
-                'partenaire' => 'required|string|max:255',
-                'cout_global' => 'required|numeric|min:0',
-                'cout_cr' => 'required|numeric|min:0',
-                'statut' => 'required|string|max:255',
-                'operationalisation' => 'required|string|max:255',
+                'localisation' => 'required|string',
+                'maitre_ouvrage' => 'required|string',
+                'partenaire' => 'required|string',
+                'cout_global' => 'required|numeric',
+                'cout_cr' => 'required|numeric',
+                'statut' => 'required|string',
+                'operationalisation' => 'required|string',
                 'id_programme' => 'required|integer|exists:programme,Id',
                 'id_projet' => 'nullable|integer|exists:projet,ID_Projet',
                 'groupe' => 'required|integer',
-                'rang' => 'nullable|string|max:255',
+                'rang' => 'nullable|string',
                 'fichiers' => 'nullable|array', // New files optional on update
-                'fichiers.*' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,xls,xlsx|max:20480', // Validate IF provided
+                'fichiers.*' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,xls,xlsx', // Validate IF provided
                 'partner_commitments' => ['required', 'string'],
                 'deleted_document_ids' => 'nullable|string',
             ], [
@@ -531,7 +533,7 @@ class ConventionController extends Controller
                  'id_projet.exists' => 'Le projet sélectionné est invalide.',
                  'fichiers.*.file' => 'Chaque élément dans :attribute doit être un fichier valide.',
                  'fichiers.*.mimes' => 'Type de fichier invalide pour les nouveaux fichiers.',
-                 'fichiers.*.max' => 'La taille maximale par nouveau fichier est de 20Mo (20480 Ko).',
+                 'observations.max' => 'Les observations ne doivent pas dépasser :max caractères.',
              ]);
             Log::info('Validation principale réussie (update).');
         } catch (ValidationException $e) { Log::error('Échec validation (update):', ['errors' => $e->errors()]); return response()->json(['message' => 'Données invalides.', 'errors' => $e->errors()], 422); }

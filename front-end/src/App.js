@@ -32,10 +32,11 @@ import EngagementsPage from './gestion_conventions/engagements_views/Engagements
 import VersementsPPPage from './gestion_conventions/versementspp_views/VersementppPage';
 import PartnerSummaryPage from './gestion_conventions/partenaire_sum_views/PartnerSummaryPage';
 import OrdreServicePage from './gestion_conventions/ordreservice_views/OrdreServicePage';
+import WelcomePage from './gestion_conventions/components/welcomePage';
 
 
 // --- Axios Configuration (Keep from App.js 1) ---
-axios.defaults.baseURL = 'http://192.168.30.241:81/api';
+axios.defaults.baseURL = 'http://localhost:8000/api';
 axios.defaults.headers.common['Accept'] = 'application/json';
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 // axios.defaults.withCredentials = true; // Uncomment if using Sanctum cookie auth
@@ -241,7 +242,7 @@ function AppContent() {
                     />
 
                     {/* Protected Routes - Render only if authenticated */}
-                    <Route path="/" element={isAuthenticated ? <DashBoard currentUser={currentUser} /> : <Navigate to="/login" replace />} />
+                    <Route path="/" element={isAuthenticated ? <WelcomePage currentUser={currentUser} /> : <Navigate to="/login" replace />} />
                     <Route path='/convention' element={isAuthenticated ? <ConventionsPage currentUser={currentUser} /> : <Navigate to="/login" replace />} />
                     <Route path='/avenants' element={isAuthenticated ? <AvenantsPage currentUser={currentUser} /> : <Navigate to="/login" replace />} />
                     <Route path='/versements' element={isAuthenticated ? <VersementPage currentUser={currentUser} /> : <Navigate to="/login" replace />} /> {/* This might be VersementCP */}

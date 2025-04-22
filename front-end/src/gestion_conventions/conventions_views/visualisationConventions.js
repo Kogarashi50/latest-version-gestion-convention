@@ -6,7 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faSpinner, faExclamationTriangle, faTimes, faExternalLinkAlt,
     faCheckCircle, faTimesCircle, faInfoCircle, faFilePdf, faFileWord,
-    faFileImage, faFileExcel, faFileAlt,
+    faFileImage, faFileExcel, faFileAlt,faCommentDots,
     faPiggyBank, faHandHoldingUsd, faTasks // Keep icons for global summary
 } from '@fortawesome/free-solid-svg-icons';
 import Button from 'react-bootstrap/Button';
@@ -188,7 +188,7 @@ const ConventionVisualisation = ({ itemId, onClose, baseApiUrl }) => {
 
     // --- Main Content Render ---
     return (
-        <div className="p-3 p-md-4 convention-visualisation-container bg-light" style={{ borderRadius: '15px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="p-3 p-md-4 convention-visualisation-container bg-light" style={{ borderRadius: '15px', maxHeight: '90vh', overflowY: 'auto', fontSize:'15px' }}>
 
             {/* Header */}
              <div className="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom border-2">
@@ -240,10 +240,19 @@ const ConventionVisualisation = ({ itemId, onClose, baseApiUrl }) => {
             <Row className="g-3 mb-4">
                 <Col lg={6}>
                     <Card className="h-100 border-light shadow-sm">
-                        <Card.Header className="bg-white py-2 border-bottom-0"><Card.Title as="h6" className="mb-0 fw-semibold text-secondary text-uppercase small">Objet & Objectifs</Card.Title></Card.Header>
+                        <Card.Header className="bg-white py-2 border-bottom-0"><Card.Title as="h6" className="mb-0 fw-semibold text-secondary text-uppercase small">  Objet, Objectifs & Observations </Card.Title></Card.Header>
                         <Card.Body className="pt-2">
                             <h6 className="fw-semibold">Objet:</h6><p className="mb-3 text-muted">{displayData(conventionData.Objet)}</p>
                             <h6 className="fw-semibold">Objectifs:</h6><p className="mb-0 text-muted">{displayData(conventionData.Objectifs)}</p>
+                            <div className="border-top mt-3 pt-2">
+                                <h6 className="fw-semibold">
+                                    <FontAwesomeIcon icon={faCommentDots} className='me-2 text-secondary' /> {/* Optional Icon */}
+                                    Observations:
+                                </h6>
+                                <p className="mb-0 text-muted fst-italic">
+                                    {displayData(conventionData.observations, 'Aucune observation.')}
+                                </p>
+                            </div>
                         </Card.Body>
                     </Card>
                 </Col>

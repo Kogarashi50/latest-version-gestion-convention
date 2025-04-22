@@ -12,7 +12,7 @@ const PartenaireForm = ({
     onClose,
     onItemCreated,
     onItemUpdated,
-    baseApiUrl = 'http://192.168.30.241:81/api' // Default base URL
+    baseApiUrl = 'http://localhost:8000/api' // Default base URL
 }) => {
     const isEditing = itemId !== null;
 
@@ -266,7 +266,7 @@ PartenaireForm.defaultProps = {
     itemId: null,
     onItemCreated: () => {},
     onItemUpdated: () => {},
-    baseApiUrl: 'http://192.168.30.241:81', // Ensure default is set
+    baseApiUrl: 'http://localhost:8000', // Ensure default is set
 };
 
 export default PartenaireForm;

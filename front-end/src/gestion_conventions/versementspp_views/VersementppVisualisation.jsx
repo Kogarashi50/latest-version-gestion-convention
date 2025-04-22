@@ -121,7 +121,7 @@ const VersementPPVisualisation = ({ itemId, onClose, baseApiUrl }) => {
                                 <dd className={DD_CLASS} title={projet?.Nom_Projet}>{displayData(projet?.Code_Projet)} - {displayData(projet?.Nom_Projet)}</dd>
 
                                  <dt className={DT_CLASS}><FontAwesomeIcon icon={faUsers} className="me-1 text-muted"/> Partenaire:</dt>
-                                 <dd className={DD_CLASS} title={partenaire?.Description}>{displayData(partenaire?.Code)} - {displayData(partenaire?.Description)}</dd>
+                                 <dd className={DD_CLASS} title={partenaire?.Description||partenaire?.Description_Arr}>{displayData(partenaire?.Code)} - {displayData(partenaire?.Description||partenaire?.Description_Arr)}</dd>
 
                                  <dt className={DT_CLASS}><FontAwesomeIcon icon={faEuroSign} className="me-1 text-muted"/> Montant Engagé:</dt>
                                  <dd className={`${DD_CLASS} text-info`}>{formatCurrency(engagement_financier?.montant_engage)}</dd>

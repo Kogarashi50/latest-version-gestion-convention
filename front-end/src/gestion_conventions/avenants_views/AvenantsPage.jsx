@@ -55,7 +55,7 @@ const createSelectOptions = (data, valueKey, labelKey) => {
 
 // --- Component ---
 const AvenantsPage = () => {
-    const BASE_API_URL = process.env.REACT_APP_API_URL || 'http://192.168.30.241:81/api';
+    const BASE_API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
     // --- State for Select Options ---
     const [conventionOptions, setConventionOptions] = useState([]);

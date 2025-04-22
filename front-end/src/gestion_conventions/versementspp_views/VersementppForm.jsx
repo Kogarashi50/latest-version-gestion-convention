@@ -8,7 +8,8 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import Select from 'react-select';
 import {
-    Form, Button, Row, Col, Alert, Spinner, Card, InputGroup, FormLabel, Stack
+    Form, Button, Row, Col, Alert, Spinner, Card, InputGroup, FormLabel, Stack,
+    FormSelect
 } from 'react-bootstrap';
 import PropTypes from 'prop-types';
 
@@ -17,6 +18,7 @@ const selectStyles = { /* Your existing selectStyles */
     control: (provided, state) => ({ ...provided, backgroundColor: '#f8f9fa', borderRadius: '1.5rem', border: state.isFocused ? '1px solid #86b7fe' : '1px solid #ced4da', boxShadow: state.isFocused ? '0 0 0 0.25rem rgba(13, 110, 253, 0.25)' : 'none', minHeight: '38px', }), valueContainer: (provided) => ({ ...provided, padding: '0.25rem 0.8rem', }), input: (provided) => ({ ...provided, margin: '0px', padding: '0px', }), indicatorSeparator: () => ({ display: 'none', }), indicatorsContainer: (provided) => ({ ...provided, padding: '1px', }), placeholder: (provided) => ({ ...provided, color: '#6c757d', }), menu: (provided) => ({ ...provided, borderRadius: '0.5rem', boxShadow: '0 0.5rem 1rem rgba(0, 0, 0, 0.15)', zIndex: 1050 }), option: (provided, state) => ({ ...provided, backgroundColor: state.isSelected ? '#0d6efd' : state.isFocused ? '#e9ecef' : null, color: state.isSelected ? 'white' : 'black', }),
 };
 const FORM_CONTAINER_CLASS = "p-3 p-md-4 versement-form-container";
+const FORM_SELECT_CLASS = "p-2 mt-1 mb-3 rounded-pill shadow-sm bg-light border"; 
 const FORM_CONTROL_CLASS = "p-2 mt-1 mb-3 rounded-pill shadow-sm bg-light border";
 const FORM_TEXTAREA_CLASS = "p-2 mt-1 mb-3 rounded shadow-sm bg-light border"; // Adjusted border radius
 const FORM_ACTIONS_ROW_CLASS = "mt-4 pt-2 justify-content-center flex-shrink-0";
@@ -30,14 +32,19 @@ const parseCurrency = (value) => { if (value === null || value === undefined) re
 const formatCurrency = (value, fallback = '-') => { const n = parseFloat(value); return isNaN(n) ? fallback : n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD', minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
 const formatDateSimple = (dateString) => { if (!dateString) return '-'; try { if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateString)) { return new Date(dateString).toLocaleDateString('fr-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }); } const d=new Date(dateString); return isNaN(d.getTime())?dateString:d.toLocaleDateString('fr-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }); } catch (e) { return dateString; } };
 // --- End Helpers ---
-
+const PAIEMENT_METHODE_OPTIONS = [
+    { value: "Virement", label: "Virement Bancaire" },
+    { value: "Chèque", label: "Chèque" },
+    { value: "Espèces", label: "Espèces" },
+    { value: "Autre", label: "Autre" }
+];
 
 const VersementPPForm = ({
     itemId = null, // Versement ID when editing
     onClose,
     onItemCreated,
     onItemUpdated,
-    baseApiUrl = 'http://192.168.30.241:81/api'
+    baseApiUrl = 'http://localhost:8000/api'
 }) => {
     // --- State ---
     const isEditing = useMemo(() => itemId !== null, [itemId]);
@@ -82,7 +89,7 @@ const VersementPPForm = ({
                     if (initialProject) {
                         setSelectedProject(initialProject);
                         const partner = data.engagement_financier.partenaire;
-                        const partnerOption = { value: partner.Id, label: `${partner.Code ? partner.Code + ' - ' : ''}${partner.Description}` };
+                        const partnerOption = { value: partner.Id, label: `${partner.Code ? partner.Code + ' - ' : ''}${partner.Description||partner.Description_Arr}` };
                         setPartnerOptions([partnerOption]); setSelectedPartner(partnerOption); setEngagementId(data.engagement_id);
                         const totalPaidByOthers = Math.max(0, (totalDejaVersePourEngagement ?? 0) - currentMontantVerse);
                         setEngagementInfo({ montant_engage: data.engagement_financier.montant_engage, total_deja_verse: totalPaidByOthers });
@@ -103,7 +110,7 @@ const VersementPPForm = ({
         if (isEditing || !selectedProject) { if(!selectedProject) { setPartnerOptions([]); setSelectedPartner(null); setEngagementId(null); setEngagementInfo({ montant_engage: null, total_deja_verse: null }); } return; }
         const projectId = selectedProject.value; let isMounted = true; const fetchPartners = async () => {
             setLoadingPartners(true); setPartnerOptions([]); setSelectedPartner(null); setEngagementId(null); setEngagementInfo({ montant_engage: null, total_deja_verse: null }); setFormErrors(prev => ({ ...prev, partenaire: undefined, engagement_id: undefined }));
-            try { const url = `${baseApiUrl}/versementspp/project/${projectId}/engaged-partners`; const response = await axios.get(url, { withCredentials: true }); if (isMounted) { const partners = response.data?.partenaires || []; setPartnerOptions(partners.map(p => ({ value: p.Id, label: `${p.Code ? p.Code + ' - ' : ''}${p.Description}` }))); } } catch (err) { console.error(`Erreur chargement Partenaires Projet ${projectId}:`, err); if (isMounted) setSubmissionStatus(prev => ({ ...prev, error: "Erreur chargement partenaires." })); } finally { if (isMounted) setLoadingPartners(false); } };
+            try { const url = `${baseApiUrl}/versementspp/project/${projectId}/engaged-partners`; const response = await axios.get(url, { withCredentials: true }); if (isMounted) { const partners = response.data?.partenaires || []; setPartnerOptions(partners.map(p => ({ value: p.Id, label: `${p.Code ? p.Code + ' - ' : ''}${p.Description||p.Description_Arr}` }))); } } catch (err) { console.error(`Erreur chargement Partenaires Projet ${projectId}:`, err); if (isMounted) setSubmissionStatus(prev => ({ ...prev, error: "Erreur chargement partenaires." })); } finally { if (isMounted) setLoadingPartners(false); } };
         fetchPartners(); return () => { isMounted = false };
     }, [selectedProject, baseApiUrl, isEditing]);
 
@@ -256,7 +263,22 @@ const VersementPPForm = ({
                          <Form.Group as={Col} md={4} controlId="formDateVersement"><Form.Label className="small mb-1 fw-medium">Date Versement <span className="text-danger">*</span></Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.date_versement} required type="date" name="date_versement" value={formData.date_versement} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.date_versement}</Form.Control.Feedback></Form.Group>
                          <Form.Group as={Col} md={4} controlId="formMontantVerse"><Form.Label className="small mb-1 fw-medium">Montant Versé (MAD) <span className="text-danger">*</span></Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.montant_verse} required type="number" name="montant_verse" value={formData.montant_verse} onChange={handleChange} size="sm" step="0.01" min="0.01" disabled={!engagementId || loadingEngagementDetails} // Suggest max amount - this doesn't strictly enforce it max={!isNaN(maxVersementPossible) && maxVersementPossible >= 0.01 ? maxVersementPossible.toFixed(2) : undefined}
                             /><Form.Control.Feedback type="invalid">{formErrors.montant_verse}</Form.Control.Feedback>{!isNaN(maxVersementPossible) && !formErrors.montant_verse && maxVersementPossible >=0 && ( <Form.Text className="text-muted small ms-1">Max possible: {formatCurrency(maxVersementPossible)}</Form.Text> )}</Form.Group>
-                         <Form.Group as={Col} md={4} controlId="formMoyenPaiement"><Form.Label className="small mb-1 fw-medium">Moyen de Paiement <span className="text-danger">*</span></Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.moyen_paiement} required type="text" name="moyen_paiement" value={formData.moyen_paiement} onChange={handleChange} size="sm" maxLength={50}/><Form.Control.Feedback type="invalid">{formErrors.moyen_paiement}</Form.Control.Feedback></Form.Group>
+                         <Form.Group as={Col} md={4} controlId="formMoyenPaiement"><Form.Label className="small mb-1 fw-medium">Moyen de Paiement <span className="text-danger">*</span></Form.Label>
+                         <Form.Select
+                                 className={FORM_SELECT_CLASS} // Use consistent style
+                                 name="moyen_paiement"
+                                 value={formData.moyen_paiement}
+                                 onChange={handleChange}
+                                 required
+                                 isInvalid={!!formErrors.moyen_paiement}
+                                 size="sm" // Match other controls
+                             >
+                                 <option value="">-- Sélectionner --</option>
+                                 {PAIEMENT_METHODE_OPTIONS.map(opt => (
+                                     <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                 ))}
+                             </Form.Select>
+                             <Form.Control.Feedback type="invalid">{formErrors.moyen_paiement}</Form.Control.Feedback>                         </Form.Group>
                      </Row>
                      <Row className="mb-1 g-3"><Form.Group as={Col} md={12} controlId="formReferencePaiement"><Form.Label className="small mb-1 fw-medium">Référence Paiement</Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.reference_paiement} type="text" name="reference_paiement" value={formData.reference_paiement} onChange={handleChange} size="sm" maxLength={100}/><Form.Control.Feedback type="invalid">{formErrors.reference_paiement}</Form.Control.Feedback></Form.Group></Row>
                      <Row className="mb-3 g-3"><Form.Group as={Col} md={12} controlId="formCommentaire"><Form.Label className="small mb-1 fw-medium">Commentaire</Form.Label><Form.Control className={FORM_TEXTAREA_CLASS} style={{borderRadius: '1rem'}} as="textarea" rows={3} name="commentaire" value={formData.commentaire} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.commentaire}</Form.Control.Feedback></Form.Group></Row>
@@ -274,6 +296,6 @@ const VersementPPForm = ({
 
 // --- PropTypes & Default Props --- (Unchanged)
 VersementPPForm.propTypes = { itemId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]), onClose: PropTypes.func.isRequired, onItemCreated: PropTypes.func, onItemUpdated: PropTypes.func, baseApiUrl: PropTypes.string };
-VersementPPForm.defaultProps = { itemId: null, onItemCreated: (v) => console.log("Versement Created:", v), onItemUpdated: (v) => console.log("Versement Updated:", v), baseApiUrl: 'http://192.168.30.241:81/api' };
+VersementPPForm.defaultProps = { itemId: null, onItemCreated: (v) => console.log("Versement Created:", v), onItemUpdated: (v) => console.log("Versement Updated:", v), baseApiUrl: 'http://localhost:8000/api' };
 
 export default VersementPPForm;

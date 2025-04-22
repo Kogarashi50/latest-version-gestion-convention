@@ -10,8 +10,8 @@ import { faDownload, faFileAlt, faTimes,faPaperclip, faBuilding, faCalendarAlt, 
 import '../bon_commandes_views/boncmd.css'; // Reuse existing styles if suitable
 
 // --- Environment Variables ---
-const BASE_API_URL =  'http://192.168.30.241:81/api';
-const STORAGE_URL = 'http://192.168.30.241:81/storage'; // Make sure this points to your storage link
+const BASE_API_URL =  'http://localhost:8000/api';
+const STORAGE_URL = 'http://localhost:8000/storage'; // Make sure this points to your storage link
 
 // --- Helper Functions ---
 const formatDecimal = (value, currency = 'MAD', decimals = 2) => { // Default currency MAD

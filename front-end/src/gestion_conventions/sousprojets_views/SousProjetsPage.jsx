@@ -6,7 +6,7 @@ import SousProjetForm from './SousProjetForm';         // Adjust path if needed
 import SousProjetVisualisation from './SousProjetVisualisation'; // Adjust path if needed
 
 // --- Constants ---
-const BASE_API_URL = 'http://192.168.30.241:81/api';
+const BASE_API_URL = 'http://localhost:8000/api';
 
 // --- Helper Functions (Copy or import from a shared utility file) ---
 const formatPercentage = (value) => {
@@ -52,33 +52,37 @@ const SousProjetsPage = () => {
     const sousProjetColumns = useMemo(() => [
         // Use EXACT Casing from schema
         { accessorKey: 'Code_Sous_Projet', header: 'Code', size: 40, meta: { enableGlobalFilter: true } },
-        { accessorKey: 'Nom_Projet', header: 'Nom', cell: info => <div className="text-truncate" style={{ maxWidth: '180px' }} title={info.getValue()}>{info.getValue().length>15?info.getValue().slice(0,30)+'...':info.getValue() || '-'}</div>, size: 200, meta: { enableGlobalFilter: true } },
+        { accessorKey: 'Nom_Projet', header: 'Nom', cell: info => <div className="text-truncate" style={{ maxWidth: '250px' }} title={info.getValue()}>{info.getValue() || '-'}</div>, size: 200, meta: { enableGlobalFilter: true } },
         {
             id: 'ProjetMaitre', header: 'Projet Maître',
             // Assuming API returns nested 'projet' object with 'Nom_Projet'
             accessorFn: row => row.projet?.Code_Projet+'-'+row.projet?.Nom_Projet || row.ID_Projet_Maitre || '-',
-            cell: info => <div className="text-truncate" style={{ maxWidth: '160px' }} title={info.getValue()}>{info.getValue().length?info.getValue().slice(0,20)+'...':info.getValue()}</div>,
-            size: 160,
+            cell: info => <div className="text-truncate" style={{ maxWidth: '250px' }} title={info.getValue()}>{info.getValue()||'-'}</div>,
+            size: 200,
             meta: { enableGlobalFilter: true } // Allow searching by Projet Maître name/code
         },
         {
             id: 'Province', header: 'Province',
             // Assuming API returns nested 'province' object with 'Nom' (adjust if different)
             accessorFn: row => row.province?.Description.replace('Province:','').trim() || row.Id_Province || '-',
-            meta: { enableGlobalFilter: true }
+            meta: { enableGlobalFilter: true },
+            size: 90,
+
         },
         {
             id: 'Commune', header: 'Commune',
              // Assuming API returns nested 'commune' object with 'Nom' (adjust if different)
             accessorFn: row => row.commune?.Description || row.Id_Commune || '-',
-             meta: { enableGlobalFilter: true }
+             meta: { enableGlobalFilter: true },
+             size: 80,
+
         },
         { accessorKey: 'Secteur', header: 'Secteur', size: 130, meta: { enableGlobalFilter: true } },
         { accessorKey: 'Localite', header: 'Localité', size: 130, meta: { enableGlobalFilter: true } },
         { accessorKey: 'Status', header: 'Statut', size: 100, meta: { enableGlobalFilter: true } },
-        { accessorKey: 'Etat_Avan_Physi', header: 'Av. Physi', cell: info => formatPercentage(info.getValue()), size: 90, meta: { enableGlobalFilter: false } },
-        { accessorKey: 'Etat_Avan_Finan', header: 'Av. Finan', cell: info => formatPercentage(info.getValue()), size: 90, meta: { enableGlobalFilter: false } }, // Optional
-        { accessorKey: 'Estim_Initi', header: 'Estim. Init.', cell: info => formatNumber(info.getValue()), size: 100, meta: { enableGlobalFilter: false } }, // Optional
+        { accessorKey: 'Etat_Avan_Physi', header: 'Av. Physi', cell: info => formatPercentage(info.getValue()), size: 100, meta: { enableGlobalFilter: false } },
+        { accessorKey: 'Etat_Avan_Finan', header: 'Av. Finan', cell: info => formatPercentage(info.getValue()), size: 100, meta: { enableGlobalFilter: false } }, // Optional
+        { accessorKey: 'Estim_Initi', header: 'Estim. Init.', cell: info => formatNumber(info.getValue()), size: 140, meta: { enableGlobalFilter: false } }, // Optional
         // { accessorKey: 'Surface', header: 'Surface', cell: info => formatNumber(info.getValue()), size: 100, meta: { enableGlobalFilter: false } }, // Optional
         // { accessorKey: 'Lineaire', header: 'Linéaire', cell: info => formatNumber(info.getValue()), size: 100, meta: { enableGlobalFilter: false } }, // Optional
         { accessorKey: 'created_at', header: 'Créé le', cell: info => info.table.options.meta?.formatDate(info.getValue()), size: 120, meta: { enableGlobalFilter: false } },

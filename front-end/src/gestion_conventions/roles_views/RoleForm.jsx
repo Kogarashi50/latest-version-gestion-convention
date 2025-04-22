@@ -235,7 +235,7 @@ RoleForm.defaultProps = {
     onItemCreated: () => {}, // Default empty function
     onItemUpdated: () => {}, // Default empty function
     // *** ADDED: Default baseApiUrl (including /api) ***
-    baseApiUrl: 'http://192.168.30.241:81/api',
+    baseApiUrl: 'http://localhost:8000/api',
 };
 
 export default RoleForm;

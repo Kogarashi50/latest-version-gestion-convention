@@ -206,7 +206,7 @@ const RenderVersementFiltersComponent = ({
 
 // --- Main Page Component ---
 const VersementPage = () => {
-    const BASE_API_URL = 'http://192.168.30.241:81/api'; // MAKE SURE THIS IS CORRECT
+    const BASE_API_URL = 'http://localhost:8000/api'; // MAKE SURE THIS IS CORRECT
     const [paiementMethodeOptions] = useState(PAIEMENT_METHODE_OPTIONS);
     const [optionsLoading, setOptionsLoading] = useState(false);
 

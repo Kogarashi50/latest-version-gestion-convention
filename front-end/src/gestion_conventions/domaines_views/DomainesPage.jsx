@@ -5,7 +5,7 @@ import DynamicTable from '../components/DynamicTable'; // Adjust path
 import DomaineForm from './DomaineForm'; // Adjust path to new form
 
 const DomainesPage = () => {
-    const BASE_API_URL = 'http://192.168.30.241:81/api'; // Or use environment variable
+    const BASE_API_URL = 'http://localhost:8000/api'; // Or use environment variable
 
     // --- Column Definition for Domaines ---
     const domaineColumns = useMemo(() => [

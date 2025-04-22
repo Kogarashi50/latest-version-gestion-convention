@@ -68,7 +68,7 @@ class VersementController extends Controller
                           })
                           ->orWhereHas('engagementFinancier.partenaire', function($subQ) use ($searchTerm) {
                               $subQ->where('Description', 'like', $searchTerm)
-                                   ->orWhere('Code', 'like', $searchTerm);
+                                   ->orWhere('Code', 'like', $searchTerm)->orWhere('Description_Arr', 'like', $searchTerm);;
                           });
                     });
                 }
@@ -181,7 +181,7 @@ class VersementController extends Controller
             $versement->load([
                 'engagementFinancier:id,montant_engage,projet_id,partenaire_id', // Include montant_engage
                 'engagementFinancier.projet:ID_Projet,Code_Projet,Nom_Projet',
-                'engagementFinancier.partenaire:Id,Code,Description' // Use correct PK 'Id'
+                'engagementFinancier.partenaire:Id,Code,Description,Description_Arr' // Use correct PK 'Id'
             ]);
 
             return response()->json([
@@ -215,7 +215,7 @@ class VersementController extends Controller
 
             // Always load the basic engagement relationship to get its ID
             $query->with(['engagementFinancier:id,montant_engage,projet_id,partenaire_id', 'engagementFinancier.projet:ID_Projet,Code_Projet,Nom_Projet', // Select necessary project fields
-            'engagementFinancier.partenaire:Id,Code,Description']); // Select needed fields
+            'engagementFinancier.partenaire:Id,Code,Description,Description_Arr']); // Select needed fields
 
            
             // If not $withDetails, only 'engagementFinancier:id,montant_engage...' is loaded
@@ -332,7 +332,7 @@ class VersementController extends Controller
            $versement->load([
                'engagementFinancier:id,montant_engage,projet_id,partenaire_id', // Add montant_engage
                'engagementFinancier.projet:ID_Projet,Code_Projet,Nom_Projet',
-               'engagementFinancier.partenaire:Id,Code,Description'
+               'engagementFinancier.partenaire:Id,Code,Description,Description_Arr'
            ]);
 
            return response()->json([
@@ -393,7 +393,7 @@ class VersementController extends Controller
         try {
             // Find engagements for the given project ID
             $engagements = EngagementFinancier::where('projet_id', $projetId)
-                            ->with('partenaire:Id,Code,Description') // Eager load partner details
+                            ->with('partenaire:Id,Code,Description,Description_Arr') // Eager load partner details
                             ->get();
 
             // Extract unique partners from these engagements

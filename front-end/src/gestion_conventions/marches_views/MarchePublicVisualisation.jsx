@@ -260,7 +260,8 @@ const MarchePublicVisualisation = ({ itemId, onClose, baseApiUrl }) => {
                      }, 4, 4)}</Row></Col>
                      <Col xs={12} className="mb-3 data-point">
                      <div  className='d-flex w-100 justify-content-between '>
-                     <div className=' p-4 m-2 bg-white rounded-5 shadow-sm w-100'>{renderDetail2("Procédure Passation", marcheData.procedure_passation, null)}
+                     <div className=' p-3 m-2 bg-white rounded-5 shadow-sm w-100'>
+                    {renderDetail2("Procédure Passation", marcheData.procedure_passation, null)}
                     {renderDetail2("Mode Passation", marcheData.mode_passation, null, )}
                     {renderDetail2("Budget Prévisionnel", marcheData.budget_previsionnel, formatCurrency, )}
                     {renderDetail2("Montant Attribué", marcheData.montant_attribue, formatCurrency, )}</div>

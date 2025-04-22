@@ -8,8 +8,8 @@ import RoleForm from './RoleForm'; // Make sure this component exists and path i
 // --- Configuration ---
 // Define BASE_API_URL consistently, using environment variables with fallback
 // **IMPORTANT**: For this to work reliably, you should set the REACT_APP_API_URL
-// environment variable to 'http://192.168.30.241:81' in your .env file when building/running.
-const BASE_API_URL = process.env.REACT_APP_API_URL || 'http://192.168.30.241:81/api';
+// environment variable to 'http://localhost:8000' in your .env file when building/running.
+const BASE_API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 // --- Helper Functions (Optional but good practice) ---
 // You can reuse the formatDate function from MarchePublicPage or define it here

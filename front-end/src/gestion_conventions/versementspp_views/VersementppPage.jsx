@@ -4,7 +4,7 @@ import VersementPPForm from './VersementppForm';           // We will create thi
 import VersementPPVisualisation from './VersementppVisualisation'; // We will create this later (optional)
 
 // --- Constants ---
-const BASE_API_URL = 'http://192.168.30.241:81/api'; // Ensure this matches your Laravel API base URL
+const BASE_API_URL = 'http://localhost:8000/api'; // Ensure this matches your Laravel API base URL
 
 // --- Helper Functions (copy/adapt from ProjetsPage or create shared utils) ---
 const formatCurrency = (value) => {
@@ -92,7 +92,7 @@ const VersementsPPPage = () => {
         // **Data from Related EngagementFinancier -> Partenaire**
         {
             id: 'partenaire_nom', header: 'Partenaire', size: 180,
-            accessorFn: row => row.engagement_financier?.partenaire?.Description || '-',
+            accessorFn: row => row.engagement_financier?.partenaire?.Description ||row.engagement_financier?.partenaire?.Description_Arr|| '-',
             cell: info => <div className="text-truncate" style={{ maxWidth: '180px' }} title={info.getValue()}>{info.getValue()}</div>,
             meta: { filterVariant: 'text', enableGlobalFilter: true } // Text filter
         },

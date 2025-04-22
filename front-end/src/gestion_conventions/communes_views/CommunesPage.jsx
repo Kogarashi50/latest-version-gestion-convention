@@ -5,7 +5,7 @@ import DynamicTable from '../components/DynamicTable'; // Adjust path
 import CommuneForm from './CommuneForm'; // Adjust path to new form
 
 const CommunesPage = () => {
-    const BASE_API_URL = 'http://192.168.30.241:81/api';
+    const BASE_API_URL = 'http://localhost:8000/api';
 
     // --- Column Definition for Communes ---
     // Using PascalCase matching the DB/Model/State

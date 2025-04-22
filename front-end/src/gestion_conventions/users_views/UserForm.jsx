@@ -347,7 +347,7 @@ UserForm.defaultProps = {
     onItemUpdated: () => {}, // Default no-op
     // ** ADDED: Default baseApiUrl (including /api) **
     // ** Make sure this matches your actual required endpoint **
-    baseApiUrl: 'http://192.168.30.241:81/api',
+    baseApiUrl: 'http://localhost:8000/api',
 };
 
 export default UserForm;

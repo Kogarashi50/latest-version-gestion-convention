@@ -46,7 +46,7 @@ const ProjetForm = ({
     onClose,
     onItemCreated,
     onItemUpdated,
-    baseApiUrl = 'http://192.168.30.241:81/api'
+    baseApiUrl = 'http://localhost:8000/api'
 }) => {
     // --- State ---
     // Main Project Data
@@ -460,9 +460,9 @@ const ProjetForm = ({
                              <Card.Header className="bg-white py-2"><Row className="align-items-center"><Col><h6 className='mb-0 fw-semibold text-secondary'><FontAwesomeIcon icon={faUserPlus} className="me-2"/>Ajouter Engagement</h6></Col><Col xs="auto"><Button variant="success" onClick={handleAddEngagement} size="sm" className="px-3" title="Ajouter à la liste"><FontAwesomeIcon icon={ faPlusCircle} className="me-1" /> Ajouter</Button></Col></Row></Card.Header>
                              <Card.Body className="p-3">
                                 <Row className="g-3 align-items-start">
-                                    <Col md={6} lg={3}><Form.Group controlId="formEngagementPartenaire"><Form.Label className="small mb-1 fw-medium">Partenaire <span className="text-danger">*</span></Form.Label><Select name="partenaire" options={partenaireOptions} value={currentEngagement.partenaire} onChange={handleEngagementPartnerChange} styles={selectStyles} placeholder="- Sélectionner -" isClearable isDisabled={loadingOptions.partenaires} isMulti={false} className={engagementErrors.partenaire ? 'is-invalid' : ''} classNamePrefix="react-select"/><Form.Control.Feedback type="invalid" style={{ display: engagementErrors.partenaire ? 'block' : 'none'}}>{engagementErrors.partenaire}</Form.Control.Feedback></Form.Group></Col>
-                                    <Col md={6} lg={2}><Form.Group controlId="formEngagementMontant"><Form.Label className="small mb-1 fw-medium">Montant (MAD) <span className="text-danger">*</span></Form.Label><Form.Control type="number" step="0.01" min="0" name="montant_engage" size="sm" value={currentEngagement.montant_engage} onChange={handleEngagementChange} className={FORM_CONTROL_CLASS.replace('mb-3', '')} isInvalid={!!engagementErrors.montant_engage}/><Form.Control.Feedback type="invalid">{engagementErrors.montant_engage}</Form.Control.Feedback></Form.Group></Col>
-                                    <Col md={4} lg={2}><Form.Group controlId="formEngagementDate"><Form.Label className="small mb-1 fw-medium">Date <span className="text-danger">*</span></Form.Label><Form.Control type="date" name="date_engagement" size="sm" value={currentEngagement.date_engagement} onChange={handleEngagementChange} className={FORM_CONTROL_CLASS.replace('mb-3', '')} isInvalid={!!engagementErrors.date_engagement}/><Form.Control.Feedback type="invalid">{engagementErrors.date_engagement}</Form.Control.Feedback></Form.Group></Col>
+                                    <Col md={6} lg={3}><Form.Group controlId="formEngagementPartenaire"><Form.Label className="small mb-1 fw-medium">Partenaire </Form.Label><Select name="partenaire" options={partenaireOptions} value={currentEngagement.partenaire} onChange={handleEngagementPartnerChange} styles={selectStyles} placeholder="- Sélectionner -" isClearable isDisabled={loadingOptions.partenaires} isMulti={false} className={engagementErrors.partenaire ? 'is-invalid' : ''} classNamePrefix="react-select"/><Form.Control.Feedback type="invalid" style={{ display: engagementErrors.partenaire ? 'block' : 'none'}}>{engagementErrors.partenaire}</Form.Control.Feedback></Form.Group></Col>
+                                    <Col md={6} lg={2}><Form.Group controlId="formEngagementMontant"><Form.Label className="small mb-1 fw-medium">Montant (MAD)</Form.Label><Form.Control type="number" step="0.01" min="0" name="montant_engage" size="sm" value={currentEngagement.montant_engage} onChange={handleEngagementChange} className={FORM_CONTROL_CLASS.replace('mb-3', '')} isInvalid={!!engagementErrors.montant_engage}/><Form.Control.Feedback type="invalid">{engagementErrors.montant_engage}</Form.Control.Feedback></Form.Group></Col>
+                                    <Col md={4} lg={2}><Form.Group controlId="formEngagementDate"><Form.Label className="small mb-1 fw-medium">Date </Form.Label><Form.Control type="date" name="date_engagement" size="sm" value={currentEngagement.date_engagement} onChange={handleEngagementChange} className={FORM_CONTROL_CLASS.replace('mb-3', '')} isInvalid={!!engagementErrors.date_engagement}/><Form.Control.Feedback type="invalid">{engagementErrors.date_engagement}</Form.Control.Feedback></Form.Group></Col>
                                     <Col md={4} lg={3}><Form.Group controlId="formEngagementCommentaire"><Form.Label className="small mb-1 fw-medium">Commentaire</Form.Label><Form.Control type="text" name="commentaire" size="sm" value={currentEngagement.commentaire} onChange={handleEngagementChange} className={FORM_CONTROL_CLASS.replace('mb-3', '')} isInvalid={!!engagementErrors.commentaire}/><Form.Control.Feedback type="invalid">{engagementErrors.commentaire}</Form.Control.Feedback></Form.Group></Col>
                                     <Col md={4} lg={2} className="d-flex align-items-center pt-md-4"><Form.Group controlId="formEngagementFormalise" className="mt-2 mt-md-0"><FormCheck type="switch" name="est_formalise" id="engagement-formalise-switch" checked={currentEngagement.est_formalise} onChange={handleEngagementChange} label="Formalisé"/></Form.Group></Col>
                                 </Row>
@@ -508,7 +508,7 @@ ProjetForm.defaultProps = {
     itemId: null,
     onItemCreated: (createdItem) => { console.log("Projet Created:", createdItem); },
     onItemUpdated: (updatedItem) => { console.log("Projet Updated:", updatedItem); },
-    baseApiUrl: 'http://192.168.30.241:81',
+    baseApiUrl: 'http://localhost:8000',
 };
 
 export default ProjetForm;

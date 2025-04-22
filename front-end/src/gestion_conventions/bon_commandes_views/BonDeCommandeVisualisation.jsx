@@ -7,8 +7,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload, faFileAlt, faTimes, faBuilding, faCalendarAlt, faFileInvoiceDollar, faTag, faFileContract, faClipboardCheck, faMoneyBillWave, faInfoCircle, faClock, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 import './boncmd.css'
 // --- Environment Variables ---
-const BASE_API_URL = 'http://192.168.30.241:81/api';
-const STORAGE_URL =  'http://192.168.30.241:81/storage';
+const BASE_API_URL = 'http://localhost:8000/api';
+const STORAGE_URL =  'http://localhost:8000/storage';
 
 // --- Helper Functions (Define or Import) ---
 const formatDecimal = (value, currency = '', decimals = 2) => {

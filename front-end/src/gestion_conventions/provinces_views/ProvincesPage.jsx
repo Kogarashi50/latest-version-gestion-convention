@@ -5,7 +5,7 @@ import DynamicTable from '../components/DynamicTable'; // Adjust path if needed
 import ProvinceForm from './ProvinceForm'; // Adjust path - Used for Create/Edit
 
 // --- Constants ---
-const BASE_API_URL = 'http://192.168.30.241:81/api'; // Adjust if different
+const BASE_API_URL = 'http://localhost:8000/api'; // Adjust if different
 
 const ProvincesPage = () => {
     // --- Column Definition ---

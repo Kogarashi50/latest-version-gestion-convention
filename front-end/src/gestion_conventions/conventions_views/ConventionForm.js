@@ -49,7 +49,7 @@ const ConventionForm = ({
     onClose,
     onItemCreated,
     onItemUpdated,
-    baseApiUrl = 'http://192.168.30.241:81/api' // Default API Base URL
+    baseApiUrl = 'http://localhost:8000/api' // Default API Base URL
 }) => {
     // --- State ---
     const [formData, setFormData] = useState({
@@ -58,7 +58,8 @@ const ConventionForm = ({
         Annee_Convention: '', Objet: '', Objectifs: '', provinces: [], Maitre_Ouvrage: '',
         Cout_Global: '', Cout_CR: '', Statut: null, Operationalisation: '', Groupe: '', Rang: '',
         programmeId: null,
-        projetId: null, // <-- ADDED: State for selected projet {value, label}
+        projetId: null,
+        observations: '', // <-- ADDED: State for selected projet {value, label}
     });
 
     // Predefined status options (using useMemo for slight optimization)
@@ -215,6 +216,7 @@ const ConventionForm = ({
                     Operationalisation: String(data.Operationalisation ?? ''),
                     Groupe: String(data.Groupe ?? ''),
                     Rang: String(data.Rang ?? ''),
+                    observations: String(data.observations ?? ''),
                     provinces: findMultiOptions(provincesOptions, data.localisation),
                     programmeId: selectedProgrammeOption,
                     projetId: selectedProjetOption // <-- Set selected projet object
@@ -263,7 +265,8 @@ const ConventionForm = ({
                  Annee_Convention: '', Objet: '', Objectifs: '', provinces: [], Maitre_Ouvrage: '',
                  Cout_Global: '', Cout_CR: '', Statut: null, Operationalisation: '', Groupe: '', Rang: '',
                  programmeId: null,
-                 projetId: null // <-- Reset projetId
+                 projetId: null,
+                 observations: ''  // <-- Reset projetId
              });
              setSelectedPartnerDetails([]);
              setFormErrors({});
@@ -294,6 +297,9 @@ const ConventionForm = ({
         if (!formData.Statut) errors.Statut = "Le statut est requis.";
         if (!formData.Operationalisation?.trim()) errors.Operationalisation = "L'operationalisation est requise.";
         if (!formData.programmeId) errors.Id_Programme = "Le programme est requis.";
+        if (formData.Observations && formData.Observations.length > 20000) { // Adjust max length as needed
+            errors.Observations = "Les observations ne doivent pas dépasser 20000 caractères.";
+        }
         if (!formData.projetId) errors.Id_Projet = "Le projet est requis.";
 
         const currentGroupe = formData.Groupe;
@@ -500,6 +506,7 @@ const ConventionForm = ({
         dataToSubmit.append('classification_prov', formData.Classification_prov);
         dataToSubmit.append('categorie', formData.Categorie);
         dataToSubmit.append('intitule', formData.Intitule);
+        dataToSubmit.append('observations', formData.observations);
         dataToSubmit.append('reference', formData.Reference);
         dataToSubmit.append('annee_convention', formData.Annee_Convention);
         dataToSubmit.append('objet', formData.Objet);
@@ -563,6 +570,7 @@ const ConventionForm = ({
                        serverValidationErrors = err.response.data.errors;
                        const mappedErrors = {};
                        Object.keys(serverValidationErrors).forEach(key => {
+                        if (key === 'observations') mappedErrors['observations'] = serverValidationErrors[key].join(' '); 
                            if (key.startsWith('fichiers.') || key === 'fichiers') mappedErrors.fichiers = (mappedErrors.fichiers || '') + serverValidationErrors[key].join(' ') + ' ';
                            else if (key.startsWith('deleted_document_ids.') || key === 'deleted_document_ids') mappedErrors.fichiers_delete = (mappedErrors.fichiers_delete || '') + serverValidationErrors[key].join(' ') + ' ';
                            else if (key.startsWith('partner_commitments.')) {
@@ -889,7 +897,23 @@ const ConventionForm = ({
                             <Form.Control.Feedback type="invalid">{formErrors.Cout_CR}</Form.Control.Feedback>
                         </Form.Group>
                     </Row>
-
+                    <Row className="mb-3 g-3">
+                        <Form.Group as={Col} controlId="formObservations">
+                            <Form.Label className="small mb-1 fw-medium">Observations</Form.Label>
+                            <Form.Control
+                                className="px-4 py-2 mt-1 rounded-3 shadow-sm bg-light border-1 rounded-5 " // Use rounded-3 for textarea
+                                isInvalid={!!formErrors.observations}
+                                as="textarea"
+                                rows={3} // Adjust rows as needed
+                                name="observations"
+                                value={formData.observations}
+                                onChange={handleChange}
+                                size="sm"
+                                placeholder="Ajouter des observations ou remarques..."
+                            />
+                            <Form.Control.Feedback type="invalid">{formErrors.observations}</Form.Control.Feedback>
+                        </Form.Group>
+                    </Row>
                     {/* --- Action Buttons --- */}
                     <Row className="mt-4 pt-2 justify-content-center flex-shrink-0">
                         <Col xs="auto">
@@ -928,7 +952,7 @@ ConventionForm.defaultProps = {
     itemId: null,
     onItemCreated: (createdItem) => { console.log('Item Created (default callback):', createdItem); },
     onItemUpdated: (updatedItem) => { console.log('Item Updated (default callback):', updatedItem); },
-    baseApiUrl: 'http://192.168.30.241:81/api',
+    baseApiUrl: 'http://localhost:8000/api',
 };
 
 export default ConventionForm;

@@ -13,7 +13,7 @@ const TYPE_OPTIONS = [
     { value: 'commencement', label: 'Ordre de Commencement' },
     { value: 'arret', label: 'Ordre d\'Arrêt' }
 ];
-const BASE_API_URL = process.env.REACT_APP_API_URL || 'http://192.168.30.241:81/api';
+const BASE_API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 // --- Helper Function ---
 const getPublicFileUrl = (baseApiUrl, relativePath) => {

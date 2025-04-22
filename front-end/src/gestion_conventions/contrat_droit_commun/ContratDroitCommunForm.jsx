@@ -7,7 +7,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrashAlt, faPaperclip, faTimes } from '@fortawesome/free-solid-svg-icons';
 
 // --- Constants ---
-const BASE_API_URL = process.env.REACT_APP_API_URL || 'http://192.168.30.241:81/api';
+const BASE_API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 // Define type options if you have a fixed list
 const TYPE_CONTRAT_OPTIONS = [
     { value: 'Maintenance', label: 'Maintenance' },

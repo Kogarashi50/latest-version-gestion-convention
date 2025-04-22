@@ -6,7 +6,7 @@ import BonDeCommandeForm from './BonDeCommandeForm';       // Adjust path
 import BonDeCommandeVisualisation from './BonDeCommandeVisualisation'; // Adjust path
 
 // Make sure BASE_API_URL is defined, either via import.meta.env or hardcoded
-const BASE_API_URL =  'http://192.168.30.241:81/api';
+const BASE_API_URL =  'http://localhost:8000/api';
 
 // --- Helper Functions ---
 const formatDecimal = (value, decimals = 2) => {

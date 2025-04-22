@@ -26,7 +26,7 @@ export default function DashboardPage() {
     const handleDownloadReport = () => {
         // Construct the full URL to the backend report download route
         // Ensure API_BASE_URL is set correctly above or remove `${API_BASE_URL}/` if not needed
-        const reportUrl = `http://192.168.30.241:81/api/report/download`;
+        const reportUrl = `http://localhost:8000/api/report/download`;
 
         console.log('Attempting to open PDF report URL:', reportUrl);
 

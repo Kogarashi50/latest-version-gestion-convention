@@ -30,7 +30,7 @@ const SousProjetForm = ({
     onClose,
     onItemCreated,
     onItemUpdated,
-    baseApiUrl = 'http://192.168.30.241:81/api' // Default URL *without* /api
+    baseApiUrl = 'http://localhost:8000/api' // Default URL *without* /api
 }) => {
     // --- State Definitions ---
     const [formData, setFormData] = useState({
@@ -573,7 +573,7 @@ SousProjetForm.defaultProps = {
     itemId: null,
     onItemCreated: () => {},
     onItemUpdated: () => {},
-    baseApiUrl: 'http://192.168.30.241:81', // Default without /api
+    baseApiUrl: 'http://localhost:8000', // Default without /api
 };
 
 export default SousProjetForm;

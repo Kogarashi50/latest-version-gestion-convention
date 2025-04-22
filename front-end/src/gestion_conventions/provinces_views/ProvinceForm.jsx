@@ -13,7 +13,7 @@ const ProvinceForm = ({
     onClose,
     onItemCreated,
     onItemUpdated,
-    baseApiUrl = 'http://192.168.30.241:81/api'
+    baseApiUrl = 'http://localhost:8000/api'
 }) => {
     // --- State ---
     const [formData, setFormData] = useState({

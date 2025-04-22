@@ -7,7 +7,7 @@ import PartenaireVisualisation from './PartenaireVisualisation'; // Adjust path 
 
 const PartenairesPage = () => {
     // Ensure this matches your environment (can use process.env.REACT_APP_API_URL)
-    const BASE_API_URL = 'http://192.168.30.241:81/api';
+    const BASE_API_URL = 'http://localhost:8000/api';
 
     // --- Column Definition for Partenaires ---
     // (No changes needed here from your version)

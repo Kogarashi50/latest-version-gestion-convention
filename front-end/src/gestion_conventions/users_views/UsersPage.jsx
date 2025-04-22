@@ -8,8 +8,8 @@ import { Badge } from 'react-bootstrap'; // Keep Badge for status
 
 // --- Configuration ---
 // Define BASE_API_URL consistently, using environment variables with fallback
-// **IMPORTANT**: Set REACT_APP_API_URL to 'http://192.168.30.241:81/api' in your .env file
-const BASE_API_URL = process.env.REACT_APP_API_URL || 'http://192.168.30.241:81/api'; // Includes /api
+// **IMPORTANT**: Set REACT_APP_API_URL to 'http://localhost:8000/api' in your .env file
+const BASE_API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api'; // Includes /api
 
 // --- Helper Functions ---
 // (Assuming these helpers are defined elsewhere or passed via meta)

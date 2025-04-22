@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios'; // Use your configured instance
-import { Form, Button, Row, Col, Spinner, Alert, Card, Stack, Badge } from 'react-bootstrap';
+import { Form, Button, Row, Col, Spinner, Alert, Card, Stack, Badge , FormSelect} from 'react-bootstrap';
 import Select from 'react-select';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faPlus, faTrashAlt, faPaperclip } from '@fortawesome/free-solid-svg-icons';
@@ -12,6 +12,16 @@ const TYPE_OPTIONS = [
     { value: 'Travaux', label: 'Travaux' },
     { value: 'Fournitures', label: 'Fournitures' },
     { value: 'Services', label: 'Services' }
+];
+const MODE_PASSATION_OPTIONS = [
+    "Appel d’offres ouvert",
+    "Appel d’offres restreint",
+    "Marché négocié avec mise en concurrence",
+    "Marché négocié sans mise en concurrence",
+    "Concours",
+    "Marché de gré à gré",
+    "Système d’acquisition dynamique",
+    "Accord-cadre"
 ];
 const STATUT_OPTIONS = [
     { value: 'En préparation', label: 'En préparation' },
@@ -646,9 +656,22 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
                      <Form.Control id="procedure_passation" className='form-control-style shadow-sm form-control-rounded' type="text" name="procedure_passation" value={formData.procedure_passation || ''} onChange={handleChange} isInvalid={!!validationErrors.procedure_passation} />
                      <Form.Control.Feedback type="invalid">{validationErrors.procedure_passation?.[0]}</Form.Control.Feedback>
                  </Form.Group>
-                <Form.Group as={Col} md="4" className="mb-3">
+                 <Form.Group as={Col} md="4" className="mb-3">
                     <Form.Label htmlFor="mode_passation">Mode Passation</Form.Label>
-                    <Form.Control id="mode_passation" className='form-control-style shadow-sm form-control-rounded' type="text" name="mode_passation" value={formData.mode_passation || ''} onChange={handleChange} isInvalid={!!validationErrors.mode_passation} />
+                    <Form.Select
+                        id="mode_passation"
+                        className='form-control-style shadow-sm form-control-rounded' // Use consistent style
+                        name="mode_passation"
+                        value={formData.mode_passation} // Bind to state
+                        onChange={handleChange} // Use standard handler
+                        isInvalid={!!validationErrors.mode_passation}
+                        size="sm" // Optional: match other controls
+                    >
+                        <option value="">-- Sélectionner --</option>
+                        {MODE_PASSATION_OPTIONS.map((mode) => (
+                            <option key={mode} value={mode}>{mode}</option>
+                        ))}
+                    </Form.Select>
                     <Form.Control.Feedback type="invalid">{validationErrors.mode_passation?.[0]}</Form.Control.Feedback>
                 </Form.Group>
             </Row>

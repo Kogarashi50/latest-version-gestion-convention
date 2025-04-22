@@ -10,7 +10,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faFileContract, faPaperclip,faCalendarAlt, faEuroSign, faClock } from '@fortawesome/free-solid-svg-icons'; // Example icons
 
 // --- Constants & Helpers ---
-const BASE_API_URL =  'http://192.168.30.241:81/api';
+const BASE_API_URL =  'http://localhost:8000/api';
 
 // Reuse or adapt existing helpers
 const formatDate = (dateString) => {

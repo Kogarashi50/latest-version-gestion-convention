@@ -6,7 +6,7 @@ import EngagementForm from './EngagementForm'; // To be created
 import EngagementVisualisation from './EngagementVisualisation'; // To be created
 
 // --- Constants ---
-const BASE_API_URL = 'http://192.168.30.241:81'; // Adjust if different
+const BASE_API_URL = 'http://localhost:8000'; // Adjust if different
 
 // Helper to format currency (consider moving to a shared utils file)
 const formatCurrency = (value) => {

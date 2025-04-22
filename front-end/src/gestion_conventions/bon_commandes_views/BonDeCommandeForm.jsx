@@ -21,9 +21,9 @@ const FORM_HEADER_CLOSE_BUTTON_CLASS = 'btn rounded-5 px-5 py-2 bg-warning shado
 
 // --- Environment Variables ---
 // Ensure these are set in your .env file (e.g., .env.local) and prefixed with VITE_
-// Example: VITE_API_URL='http://192.168.30.241:81/api'
-const BASE_API_URL = 'http://192.168.30.241:81/api';
-const STORAGE_URL ='http://192.168.30.241:81/storage';
+// Example: VITE_API_URL='http://localhost:8000/api'
+const BASE_API_URL = 'http://localhost:8000/api';
+const STORAGE_URL ='http://localhost:8000/storage';
 
 // --- Component Definition ---
 const BonDeCommandeForm = ({ itemId = null, onClose, onItemCreated, onItemUpdated }) => {
