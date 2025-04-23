@@ -769,12 +769,12 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
                      {validationErrors.type_marche && <div className="d-block invalid-feedback">{validationErrors.type_marche?.[0]}</div>}
                  </Form.Group>
                  <Form.Group as={Col} md="4" className="mb-3">
-                     <Form.Label htmlFor="procedure_passation">Procédure Passation</Form.Label>
-                     <Form.Control id="procedure_passation" className='form-control-style shadow-sm form-control-rounded' type="text" name="procedure_passation" value={formData.procedure_passation || ''} onChange={handleChange} isInvalid={!!validationErrors.procedure_passation} />
+                     <Form.Label htmlFor="procedure_passation">Procédure Passation <span className="text-danger">*</span></Form.Label>
+                     <Form.Control id="procedure_passation"required className='form-control-style shadow-sm form-control-rounded' type="text" name="procedure_passation" value={formData.procedure_passation || ''} onChange={handleChange} isInvalid={!!validationErrors.procedure_passation} />
                      <Form.Control.Feedback type="invalid">{validationErrors.procedure_passation?.[0]}</Form.Control.Feedback>
                  </Form.Group>
                  <Form.Group as={Col} md="4" className="mb-3">
-                    <Form.Label htmlFor="mode_passation">Mode Passation</Form.Label>
+                    <Form.Label htmlFor="mode_passation">Mode Passation  <span className="text-danger">*</span></Form.Label>
                     <Select
                         id="mode_passation_select"
                         className='form-control-style shadow-sm form-control-rounded' // Use consistent style
@@ -788,7 +788,7 @@ const MarchePublicForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
                             backgroundColor:'#f8f9fa'
                          }) }}
                          placeholder="Sélectionner mode..."
-
+                         required
                          // Optional: match other controls
                     />
                        
