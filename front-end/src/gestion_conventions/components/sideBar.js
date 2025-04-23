@@ -4,22 +4,31 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import PropTypes from 'prop-types';
 import { Link, useLocation } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import menuItems, { faChevronDown, PERMISSIONS } from "../data"; // Import PERMISSIONS
-import "./dashboard.css"; // Main dashboard styles (if any)
+import menuItems, { faChevronDown, PERMISSIONS } from "../data"; // Adjust import path if needed
+import "./sidebar.css";   // Import sidebar specific CSS
 
 const EXCLUDED_ITEM_ID = 1; // ID for Brand/Logo item
-const COLLAPSE_THRESHOLD_WIDTH = 100; // Adjust if your collapsed width changes
+const COLLAPSE_THRESHOLD_WIDTH = 100; // Width threshold for collapse
+
+// Thresholds for "Middle" Area (pixels from visible top/bottom edges)
+const MIDDLE_ZONE_TOP_THRESHOLD = 54; // Adjust if needed
+const MIDDLE_ZONE_BOTTOM_THRESHOLD = 54; // Adjust if needed
 
 const Sidebar = ({ currentUser }) => {
+    // --- State ---
     const [activeItemId, setActiveItemId] = useState(null);
     const [selectorStyle, setSelectorStyle] = useState({ opacity: 0, top: 0, height: 0 });
     const [isCollapsed, setIsCollapsed] = useState(false);
-    const [expandedItems, setExpandedItems] = useState({}); // State for expanded parents { parentId: true }
+    const [expandedItems, setExpandedItems] = useState({});
+    const [scrollCounter, setScrollCounter] = useState(0); // State to trigger re-render on scroll
+
+    // --- Refs ---
     const sidebarRef = useRef(null);
     const itemRefs = useRef({});
     const location = useLocation();
     const resizeObserverRef = useRef(null);
 
+    // --- Permissions ---
     const userPermissions = currentUser?.permissions || [];
 
     // --- Helper Functions ---
@@ -27,318 +36,184 @@ const Sidebar = ({ currentUser }) => {
         return menuItems.filter(item => item.type === 'subtitle' && item.parentId === parentId);
     }, []);
 
-    // --- handleItemClick: Handles collapsing others ---
+    const getItemLabel = useCallback((label) => {
+        // Keep existing logic
+        if (typeof label === 'string') return label;
+        if (React.isValidElement(label) && label.props?.children?.find) {
+             const textSpan = label.props.children.find(child => child?.props?.className === 'brand-text');
+             if (textSpan && typeof textSpan.props.children === 'string') { return textSpan.props.children.replace('<br />', ' '); }
+        }
+        if (React.isValidElement(label) && typeof label.props.children === 'string') { return label.props.children; }
+        if (React.isValidElement(label) && label.type === 'span' && label.props?.children?.[0]?.type === 'img') {
+             const textSpan = label.props.children.find(child => child?.props?.className === 'brand-text');
+             return textSpan?.props?.children?.[0] || "Accueil";
+        }
+        return "Menu Item";
+    }, []);
+
+
+    // --- Event Handlers ---
     const handleItemClick = useCallback((item, event) => {
-        console.log("[Sidebar] Clicked item:", item.label, "ID:", item.id);
-
-        if (item.type === 'heading') {
-            event.preventDefault();
-            return;
-        }
-
-        // --- Expansion Logic: Collapse others ---
-        let nextExpandedState = {}; // Start with empty state (collapse all)
-
-        if (item.hasSubtitles) {
-            // Clicked on a parent item itself. Keep *only* this one expanded.
-            // Even if it was already expanded, setting it ensures others are collapsed.
-            nextExpandedState = { [item.id]: true };
-            // Prevent default navigation if it's just an expander link
-            if (item.path === '#') {
-                event.preventDefault();
-            }
-        } else if (item.type === 'subtitle' && item.parentId) {
-            // Clicked on a subtitle. Keep *only* its parent expanded.
-            nextExpandedState = { [item.parentId]: true };
-        }
-        // If it's a regular item (no subtitles, not a subtitle itself),
-        // nextExpandedState remains {}, collapsing all dropdowns.
-
-        // Update the expanded items state
+        // Keep existing logic
+        if (item.type === 'heading') { event.preventDefault(); return; }
+        let nextExpandedState = { ...expandedItems };
+        if (item.hasSubtitles) { nextExpandedState = { [item.id]: !expandedItems[item.id] }; if (item.path === '#') event.preventDefault(); }
+        else if (item.type === 'subtitle' && item.parentId) { nextExpandedState[item.parentId] = true; }
         setExpandedItems(nextExpandedState);
-        // --- End Expansion Logic ---
-
-
-        // --- Active Item Logic ---
-        // Update active item ID (only for actual links, not pure expanders '#')
-        if (item.path !== '#' && item.id !== EXCLUDED_ITEM_ID) {
-             setActiveItemId(item.id);
-        } else if (item.id === EXCLUDED_ITEM_ID) {
-             // Optional: Clear active state if logo is clicked
-             // setActiveItemId(null);
-        }
-        // --- End Active Item Logic ---
-
-
-        // --- Scrolling Logic (remains the same) ---
+        if (item.path !== '#' && item.id !== EXCLUDED_ITEM_ID) setActiveItemId(item.id);
         const itemElement = itemRefs.current[item.id];
-        const sidebarElement = sidebarRef.current;
-
-        if (itemElement && sidebarElement) {
-            setTimeout(() => {
-                const currentItemElement = itemRefs.current[item.id];
-                const currentSidebarElement = sidebarRef.current;
-                if (!currentItemElement || !currentSidebarElement) {
-                    console.warn("[Sidebar] Refs became invalid before scroll timeout.");
-                    return;
-                }
-                currentItemElement.scrollIntoView({
-                    behavior: 'smooth',
-                    block: 'nearest'
-                });
-            }, 0);
-        } else {
-            console.warn("[Sidebar] Scrolling skipped: itemElement or sidebarElement ref not found immediately on click.");
+        if (itemElement && sidebarRef.current && item.id !== EXCLUDED_ITEM_ID && item.path !== '#') {
+             setTimeout(() => itemRefs.current[item.id]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
         }
-        // --- End Scrolling Logic ---
+    }, [expandedItems]);
 
-    }, [/* No dependencies needed for state setters */]); // Removed toggleExpand dependency
-
-
-    // --- updateSelector (calculates style for the active item highlight) ---
     const updateSelector = useCallback((itemId, currentCollapsedState) => {
+        // Keep existing logic
         const activeItem = menuItems.find(i => i.id === itemId);
-        if (!activeItem || activeItem.type === 'heading' || currentCollapsedState) {
-            setSelectorStyle(prev => prev.opacity === 0 ? prev : { ...prev, opacity: 0 });
-            return;
-        }
         const activeItemElement = itemRefs.current[itemId];
-        if (activeItemElement && activeItemElement.offsetHeight > 0 && sidebarRef.current) {
-            const topRelativeToSidebar = activeItemElement.offsetTop;
-            const newStyle = {
-                top: `${topRelativeToSidebar}px`,
-                height: `${activeItemElement.offsetHeight}px`,
-                opacity: 1,
-            };
+        if (!activeItem || activeItem.type === 'heading' || activeItem.id === EXCLUDED_ITEM_ID || currentCollapsedState || !activeItemElement || !sidebarRef.current) {
+            setSelectorStyle(prev => prev.opacity === 0 ? prev : { ...prev, opacity: 0 }); return;
+        }
+        if (activeItemElement.offsetHeight > 0) {
+            const top = activeItemElement.offsetTop;
+            const height = activeItemElement.offsetHeight;
+            const newStyle = { top: `${top}px`, height: `${height}px`, opacity: 1 };
             setSelectorStyle(prev => (prev.top === newStyle.top && prev.height === newStyle.height && prev.opacity === newStyle.opacity) ? prev : newStyle);
         } else {
             setSelectorStyle(prev => prev.opacity === 0 ? prev : { ...prev, opacity: 0 });
         }
     }, []);
 
-    // --- getItemLabel (extracts text label for tooltips etc.) ---
-    const getItemLabel = (label) => {
-         // Your existing logic here
-         if (typeof label === 'string') return label;
-         if (React.isValidElement(label) && label.props?.children?.find) {
-             const textSpan = label.props.children.find(child => child?.props?.className === 'brand-text');
-             if (textSpan && typeof textSpan.props.children === 'string') { return textSpan.props.children.replace('<br />', ' '); }
-         }
-         if (React.isValidElement(label) && typeof label.props.children === 'string') { return label.props.children; }
-         if (React.isValidElement(label) && label.type === 'span' && label.props?.children?.[0]?.type === 'img') {
-             const textSpan = label.props.children.find(child => child?.props?.className === 'brand-text');
-             return textSpan?.props?.children?.[0] || "Accueil";
-         }
-         return "Menu Item";
-    };
+    // Scroll Handler to trigger re-calculation
+    const handleScroll = useCallback(() => {
+        setScrollCounter(prev => prev + 1);
+    }, []);
 
 
     // --- useEffect Hooks ---
 
-    // Update active item and expand parent based on URL location
+    // Setup Scroll Listener
+    useEffect(() => {
+        const sidebarElement = sidebarRef.current;
+        if (sidebarElement) {
+            sidebarElement.addEventListener('scroll', handleScroll, { passive: true });
+            return () => {
+                sidebarElement.removeEventListener('scroll', handleScroll);
+            };
+        }
+    }, [handleScroll]);
+
+    // Update active item based on URL
     useEffect(() => {
         const currentPath = location.pathname;
-        let potentialActiveId = null;
-        let isSubActive = false;
-        let activeParentId = null;
-        const activeItem = menuItems.find(item => item && item.path === currentPath && item.type !== 'heading');
-
-        if (activeItem) {
-            potentialActiveId = activeItem.id;
-            if (activeItem.type === 'subtitle' && activeItem.parentId) {
-                 isSubActive = true;
-                 activeParentId = activeItem.parentId;
-            }
+        const activeItem = menuItems.find(item => item?.path === currentPath && item.id !== EXCLUDED_ITEM_ID && item.type !== 'heading');
+        const potentialActiveId = activeItem ? activeItem.id : null;
+        setActiveItemId(prevId => prevId === potentialActiveId ? prevId : potentialActiveId);
+        if (activeItem?.type === 'subtitle' && activeItem.parentId) {
+            setExpandedItems(prev => ({ ...prev, [activeItem.parentId]: true }));
         }
-        const finalActiveId = (potentialActiveId !== null && potentialActiveId !== EXCLUDED_ITEM_ID) ? potentialActiveId : null;
-        setActiveItemId(prevId => prevId === finalActiveId ? prevId : finalActiveId);
-
-        // Expand the parent when navigating directly to a subtitle URL
-        if (isSubActive && activeParentId) {
-             // Set expanded state to *only* the active parent
-             setExpandedItems({ [activeParentId]: true });
-        } else if (!isSubActive && finalActiveId && !menuItems.find(i => i.id === finalActiveId)?.hasSubtitles) {
-             // If navigating to a non-parent, non-subtitle item, collapse all
-             // setExpandedItems({}); // Optional: uncomment if direct nav should collapse others
-        }
-
     }, [location.pathname]);
 
-    // Handle sidebar collapse/expand based on width (remains the same)
+    // Handle sidebar collapse/expand based on width
     useEffect(() => {
         const sidebarElement = sidebarRef.current;
         if (!sidebarElement) return;
         let resizeTimeout;
-        const observerCallback = entries => {
-          clearTimeout(resizeTimeout);
-          resizeTimeout = setTimeout(() => {
-            for (let entry of entries) {
-              const currentWidth = entry.borderBoxSize?.[0]?.inlineSize ?? entry.contentRect.width;
-              const shouldBeCollapsed = currentWidth < COLLAPSE_THRESHOLD_WIDTH;
-              setIsCollapsed(prev => prev === shouldBeCollapsed ? prev : shouldBeCollapsed);
-            }
-          }, 50);
-        };
-        if (resizeObserverRef.current) { resizeObserverRef.current.disconnect(); }
+        const observerCallback = entries => { clearTimeout(resizeTimeout); resizeTimeout = setTimeout(() => { entries.forEach(entry => setIsCollapsed(prev => prev === (entry.contentRect.width < COLLAPSE_THRESHOLD_WIDTH) ? prev : (entry.contentRect.width < COLLAPSE_THRESHOLD_WIDTH))) }, 50); };
+        if (resizeObserverRef.current) resizeObserverRef.current.disconnect();
         resizeObserverRef.current = new ResizeObserver(observerCallback);
         resizeObserverRef.current.observe(sidebarElement);
-        const initialWidth = sidebarElement.getBoundingClientRect().width;
-        setIsCollapsed(initialWidth < COLLAPSE_THRESHOLD_WIDTH);
-        return () => {
-            clearTimeout(resizeTimeout);
-            if (resizeObserverRef.current) { resizeObserverRef.current.disconnect(); resizeObserverRef.current = null; }
-        };
-      }, []);
+        setIsCollapsed(sidebarElement.getBoundingClientRect().width < COLLAPSE_THRESHOLD_WIDTH);
+        return () => { clearTimeout(resizeTimeout); resizeObserverRef.current?.disconnect(); resizeObserverRef.current = null; };
+    }, []);
 
-    // Update the selector position (remains the same)
+    // Update selector position
     useEffect(() => {
-        const animationFrameId = requestAnimationFrame(() => {
-          updateSelector(activeItemId, isCollapsed);
-        });
-        return () => cancelAnimationFrame(animationFrameId);
-      }, [activeItemId, isCollapsed, updateSelector]);
+        const rafId = requestAnimationFrame(() => updateSelector(activeItemId, isCollapsed));
+        return () => cancelAnimationFrame(rafId);
+    }, [activeItemId, isCollapsed, updateSelector]);
 
 
-    // --- Filtering Logic --- (Remains the same)
+    // --- Filtering Logic (Permissions) ---
     const finalVisibleMenuItems = useMemo(() => {
-        const permissionFilteredItems = menuItems.filter(item => {
-            if (item.type === 'heading' || !item.requiredPermission || item.id === EXCLUDED_ITEM_ID) return true;
-            return userPermissions.includes(item.requiredPermission);
-        });
-        const visibleFunctionalItemIds = new Set(
-            permissionFilteredItems
-                .filter(item => item.type !== 'heading' && item.id !== EXCLUDED_ITEM_ID)
-                .map(item => item.id)
-        );
-        permissionFilteredItems.forEach(item => {
-            if(item.type === 'subtitle' && item.parentId && visibleFunctionalItemIds.has(item.id)) {
-                 const parentItem = menuItems.find(p => p.id === item.parentId);
-                 if(parentItem && (!parentItem.requiredPermission || userPermissions.includes(parentItem.requiredPermission))) {
-                      if(!visibleFunctionalItemIds.has(item.parentId)) {
-                           visibleFunctionalItemIds.add(item.parentId);
-                      }
-                 }
+        // Keep existing logic
+        const permissionFilteredItems = menuItems.filter(item => !item.requiredPermission || userPermissions.includes(item.requiredPermission) || item.type === 'heading' || item.id === EXCLUDED_ITEM_ID);
+        const visibleIds = new Set(permissionFilteredItems.filter(i => i.type !== 'heading' && i.id !== EXCLUDED_ITEM_ID).map(i => i.id));
+        permissionFilteredItems.forEach(item => { if (item.type === 'subtitle' && item.parentId && visibleIds.has(item.id)) { const parent = menuItems.find(p => p.id === item.parentId); if (parent && (!parent.requiredPermission || userPermissions.includes(parent.requiredPermission))) visibleIds.add(item.parentId); } });
+        return menuItems.filter((item, i, all) => { if (item.id === EXCLUDED_ITEM_ID) return menuItems.some(o => o.id === EXCLUDED_ITEM_ID); if (item.type !== 'heading') return visibleIds.has(item.id); if (item.type === 'heading') { for (let j = i + 1; j < all.length; j++) { if (all[j].type === 'heading') break; if (visibleIds.has(all[j].id)) return true; } return false; } return false; });
+    }, [userPermissions]);
+
+
+    // --- Calculate Selector Shape (Runs on EVERY Render) ---
+    let shapeClass = '';
+    if (sidebarRef.current && selectorStyle.opacity === 1 && !isCollapsed && activeItemId !== EXCLUDED_ITEM_ID) {
+        const sidebar = sidebarRef.current;
+        const scrollTop = sidebar.scrollTop;
+        const clientHeight = sidebar.clientHeight;
+        const selectorTop = parseFloat(selectorStyle.top);
+        const selectorHeight = parseFloat(selectorStyle.height);
+
+        if (!isNaN(selectorTop) && !isNaN(selectorHeight) && selectorHeight > 0 && clientHeight > 0) {
+            const selectorTopInViewport = selectorTop - scrollTop;
+            const selectorBottomInViewport = selectorTopInViewport + selectorHeight;
+            const isNearVisibleTop = selectorTopInViewport < MIDDLE_ZONE_TOP_THRESHOLD;
+            const isNearVisibleBottom = selectorBottomInViewport > (clientHeight - MIDDLE_ZONE_BOTTOM_THRESHOLD);
+
+            // console.log(`ScrollT: ${scrollTop.toFixed(0)}, ClientH: ${clientHeight.toFixed(0)}, SelTopAbs: ${selectorTop.toFixed(0)}, SelH: ${selectorHeight.toFixed(0)}, ViewportTop: ${selectorTopInViewport.toFixed(0)}, ViewportBot: ${selectorBottomInViewport.toFixed(0)}, NearTop: ${isNearVisibleTop}, NearBot: ${isNearVisibleBottom}`);
+
+            if (isNearVisibleTop || isNearVisibleBottom) {
+                shapeClass = 'pill-shape';
             }
-        });
-        const result = menuItems.filter((item, index, allItems) => {
-            if (item.id === EXCLUDED_ITEM_ID) return true;
-            if (item.type !== 'heading') return visibleFunctionalItemIds.has(item.id);
-            if (item.type === 'heading') {
-                let hasVisibleChild = false;
-                for (let i = index + 1; i < allItems.length; i++) {
-                    const nextItem = allItems[i];
-                    if (nextItem.type === 'heading') break;
-                    if (visibleFunctionalItemIds.has(nextItem.id)) {
-                         hasVisibleChild = true; break;
-                    }
-                }
-                return hasVisibleChild;
-            }
-            return false;
-        });
-        return result;
-    }, [userPermissions, getSubtitles]);
+        }
+    }
+    const selectorClasses = ['selector-active', shapeClass].filter(Boolean).join(' ');
 
 
     // --- Render Function for a single menu item ---
     const renderMenuItem = (item) => {
+        // Keep existing logic for headings, items, subtitles, brand, etc.
         if (!item || typeof item.id === 'undefined') return null;
-
-        // --- RENDER HEADING ---
-        if (item.type === 'heading') {
-            if (isCollapsed) return null;
-            return ( <li key={item.id} className="sidebar-section-heading "><div className="sidebar-hr"><hr /></div><span style={{ paddingLeft:'25px'}}>{item.label}</span></li> );
-        }
-
-        // --- RENDER OTHER ITEMS ---
+        if (item.type === 'heading') { if (isCollapsed) return null; return ( <li key={item.id} className="sidebar-section-heading" aria-hidden="true"><div className="sidebar-hr"><hr /></div><span style={{ paddingLeft:'25px'}}>{item.label}</span></li> ); }
         const titleLabel = getItemLabel(item.label);
-        const isActive = activeItemId === item.id;
+        const isActive = activeItemId === item.id && item.id !== EXCLUDED_ITEM_ID;
         const isSubtitle = item.type === 'subtitle';
         const isParent = item.hasSubtitles;
-        // Determine if this specific parent item should be expanded based on the state
-        const isEffectivelyExpanded = isParent && expandedItems[item.id]; // Direct check
-
-        const liClasses = [
-            isActive ? "active" : "",
-            isSubtitle ? "sidebar-subtitle" : "",
-            isParent ? "sidebar-expandable" : "",
-            isEffectivelyExpanded ? "expanded" : "", // Use direct check for 'expanded' class
-            item.id === EXCLUDED_ITEM_ID ? "brand-item" : "",
-        ].filter(Boolean).join(" ");
-
-        // Ref Assignment (remains the same)
-        const assignRef = (el) => {
-             if (el && item.id !== EXCLUDED_ITEM_ID && item.type !== 'heading') {
-                 itemRefs.current[item.id] = el;
-             } else {
-                 if (itemRefs.current[item.id]) {
-                     delete itemRefs.current[item.id];
-                 }
-             }
-         };
-
+        const isEffectivelyExpanded = isParent && expandedItems[item.id];
+        const liClasses = [ isActive ? "active" : "", isSubtitle ? "sidebar-subtitle" : "", isParent ? "sidebar-expandable" : "", isEffectivelyExpanded ? "expanded" : "", item.id === EXCLUDED_ITEM_ID ? "brand-item" : "" ].filter(Boolean).join(" ");
+        const assignRef = (el) => { if (el && item.id !== EXCLUDED_ITEM_ID && item.type !== 'heading') itemRefs.current[item.id] = el; else if (itemRefs.current[item.id]) delete itemRefs.current[item.id]; };
         return (
             <React.Fragment key={item.id}>
                 <li ref={assignRef} className={liClasses} aria-expanded={isParent ? isEffectivelyExpanded : undefined} >
-                    <Link
-                        to={item.path}
-                        title={isCollapsed ? titleLabel || undefined : undefined}
-                        onClick={(e) => handleItemClick(item, e)} // This now handles expansion logic
-                        aria-current={isActive ? "page" : undefined}
-                    >
-                        {/* Icon */}
-                        {item.id === EXCLUDED_ITEM_ID ? (
-                            <span style={{marginTop:'15px'}} className="d-flex justify-self-center align-items-center text-center mainItem">
-                                <img src="/logosite.png" className="align-self-center bg-light Navlogo" width="50" height="50" alt="Logo" style={{ transition: 'width 0.3s ease, height 0.3s ease' ,padding:'4px'}} />
-                                {!isCollapsed && (
-                                    <span className="brand-text text-start"> GICOPMA <small className="d-block " style={{fontSize:'8px'}}>GESTION INTEGREE DES CONVENTIONS,<br/>PROJETS ET MARCHES</small> </span>
-                                )}
-                            </span>
-                         ) : item.icon ? (
-                            <FontAwesomeIcon icon={item.icon} fixedWidth />
-                         ) : (
-                             isCollapsed && <span style={{display: 'inline-block', width: '1.25em'}}></span> // Placeholder
-                         )}
-
-                        {/* Label and Arrow */}
-                        {!isCollapsed && item.id !== EXCLUDED_ITEM_ID && (
-                            <span className="sidebar-item-label">
-                                {item.label}
-                                {isParent && (
-                                    // Arrow rotation based on whether this item is expanded
-                                    <FontAwesomeIcon icon={faChevronDown} className={`expand-arrow ${isEffectivelyExpanded ? 'rotated' : ''}`} />
-                                )}
-                            </span>
-                        )}
+                    <Link to={item.path} title={isCollapsed ? titleLabel || undefined : undefined} onClick={(e) => handleItemClick(item, e)} aria-current={isActive ? "page" : undefined} tabIndex={item.path === '#' ? -1 : 0}>
+                        { item.id === EXCLUDED_ITEM_ID ? ( <span className="d-flex align-items-center mainItem"><img src="/logosite.png" className="bg-light Navlogo" width="50" height="50" alt="Logo GICOPMA" style={{padding:'4px'}} />{!isCollapsed && (<span className="brand-text text-start"> GICOPMA <small className="d-block" style={{fontSize:'8px', lineHeight: '1.1'}}>GESTION INTEGREE DES CONVENTIONS,<br/>PROJETS ET MARCHES</small> </span>)}</span> ) : item.icon ? ( <FontAwesomeIcon icon={item.icon} fixedWidth /> ) : ( isCollapsed && <span style={{ display: 'inline-block', width: '1.25em' }}></span> )}
+                        {!isCollapsed && item.id !== EXCLUDED_ITEM_ID && ( <span className="sidebar-item-label">{item.label}{isParent && (<FontAwesomeIcon icon={faChevronDown} className={`expand-arrow ${isEffectivelyExpanded ? 'rotated' : ''}`} />)}</span> )}
                     </Link>
                 </li>
-
-                {/* Render Subtitles Conditionally: Check if this parent is expanded */}
-                {isParent && isEffectivelyExpanded && !isCollapsed && (
-                    <ul className="sidebar-submenu">
-                        {getSubtitles(item.id)
-                            .filter(subItem => finalVisibleMenuItems.some(visible => visible.id === subItem.id))
-                            .map(renderMenuItem)}
-                    </ul>
-                )}
+                {isParent && isEffectivelyExpanded && !isCollapsed && ( <ul className="sidebar-submenu" role="group">{getSubtitles(item.id).filter(subItem => finalVisibleMenuItems.some(visible => visible.id === subItem.id)).map(renderMenuItem)}</ul> )}
             </React.Fragment>
         );
-    }; // End renderMenuItem
+    };
+
 
     // --- Component Return ---
     return (
-        <ul className={`sidebar ${isCollapsed ? 'is-collapsed' : ''}`} ref={sidebarRef}>
-            <div className="selector-active" style={selectorStyle}>
-                 <div className="top"></div><div className="bottom"></div>
+        <nav className={`sidebar ${isCollapsed ? 'is-collapsed' : ''}`} ref={sidebarRef} aria-label="Main Navigation">
+            {/* RESTORED: Inner .top and .bottom divs */}
+            <div className={selectorClasses} style={selectorStyle} aria-hidden="true">
+                 <div className="top"></div>
+                 <div className="bottom"></div>
             </div>
-            {finalVisibleMenuItems
-                .filter(item => item.type !== 'subtitle')
-                .map(renderMenuItem)}
-        </ul>
+            {/* Menu List */}
+            <ul className="sidebar-menu-list" role="menu">
+                {finalVisibleMenuItems
+                    .filter(item => !item.parentId || item.type === 'heading')
+                    .map(renderMenuItem)}
+            </ul>
+        </nav>
     );
 };
 
-// PropTypes
+// --- PropTypes ---
 Sidebar.propTypes = {
     currentUser: PropTypes.shape({
         permissions: PropTypes.arrayOf(PropTypes.string)
