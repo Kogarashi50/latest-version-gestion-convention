@@ -345,25 +345,25 @@ const ConventionsPage = () => {
             <Form className="p-3 border bg-light rounded mb-3">
                 <Row className="g-3 align-items-end">
                     {/* Année */}
-                    <Col xs={6} md={4} lg={2}>
+                    <Col xs={12}>
                         <Form.Group controlId="filterAnnee"><Form.Label size="sm" className="mb-1">Année</Form.Label>
                             <Select options={anneeOptions} value={filterAnnee} onChange={(opt) => handleSelectChange(setFilterAnnee, anneeColumn, opt)} placeholder="Toutes" isClearable isSearchable={false} size="sm" styles={selectStyles} isLoading={optionsLoading}/>
                         </Form.Group>
                     </Col>
                     {/* Statut */}
-                    <Col xs={6} md={4} lg={2}>
+                    <Col xs={12}>
                         <Form.Group controlId="filterStatut"><Form.Label size="sm" className="mb-1">Statut</Form.Label>
                             <Select options={statutOptions} value={filterStatut} onChange={(opt) => handleSelectChange(setFilterStatut, statutColumn, opt)} placeholder="Tous" isClearable isSearchable={false} size="sm" styles={selectStyles}/>
                         </Form.Group>
                     </Col>
                     {/* Maitre Ouvrage */}
-                    <Col xs={12} md={4} lg={3}>
+                    <Col xs={12}>
                          <Form.Group controlId="filterMaitreOuvrage"><Form.Label size="sm" className="mb-1">Maitre Ouvrage</Form.Label>
                             <Select options={maitreOuvrageOptions} value={filterMaitreOuvrage} onChange={(opt) => handleSelectChange(setFilterMaitreOuvrage, maitreOuvrageColumn, opt)} placeholder="Tous" isClearable isSearchable size="sm" styles={selectStyles} isLoading={optionsLoading}/>
                         </Form.Group>
                     </Col>
                     {/* Coût Global */}
-                     <Col xs={12} sm={6} md={4} lg={2}>
+                     <Col xs={12}>
                          <Form.Group controlId="filterCoutGlobal"><Form.Label size="sm" className="mb-1">Coût Global (Min-Max)</Form.Label>
                              <InputGroup size="sm">
                                  <Form.Control type="number" placeholder="Min" value={filterCoutGlobalMin} onChange={(e) => handleRangeChange(setFilterCoutGlobalMin, e.target.value)} onBlur={applyCostFilters} />
@@ -372,7 +372,7 @@ const ConventionsPage = () => {
                          </Form.Group>
                      </Col>
                     {/* Coût CR */}
-                    <Col xs={12} sm={6} md={4} lg={2}>
+                    <Col xs={12}>
                         <Form.Group controlId="filterCoutCR"><Form.Label size="sm" className="mb-1">Coût CR (Min-Max)</Form.Label>
                             <InputGroup size="sm">
                                 <Form.Control type="number" placeholder="Min" value={filterCoutCRMin} onChange={(e) => handleRangeChange(setFilterCoutCRMin, e.target.value)} onBlur={applyCostFilters} />
@@ -381,7 +381,7 @@ const ConventionsPage = () => {
                         </Form.Group>
                     </Col>
                     {/* Reset */}
-                    <Col xs={12} lg={1} className="d-flex justify-content-end">
+                    <Col xs={12} className="d-flex justify-content-end">
                         <Button variant="outline-secondary" size="sm" onClick={resetFilters} title="Réinitialiser les filtres">
                              <FontAwesomeIcon icon={faTimes} />
                         </Button>
