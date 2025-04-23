@@ -431,8 +431,7 @@ class MarchePublicController extends Controller
 
         if ($validator->fails()) {
             Log::error("Update validation failed (Laravel) for ID {$marches_public->id}:", $validator->errors()->toArray());
-            return response()->json(['message' => 'Erreurs de validation.', 'errors' => $validator->errors()], 422);
-        }
+            return response()->json(['message' => __('messages.validation_errors'), 'errors' => $validator->errors()], 422);        }
         Log::info("Update validation passed (Laravel) for ID: {$marches_public->id}");
 
         // --- Prepare Data & Decode JSON ---
