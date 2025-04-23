@@ -1,6 +1,6 @@
 // src/gestion_conventions/appel_offres_views/AppelOffrePage.jsx
 
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback,useState } from 'react';
 import DynamicTable from '../components/DynamicTable'; // Adjust path as needed
 // Ensure these point to the updated Form/Visualisation components for JSON provinces
 import AppelOffreForm from './AppelOffreForm';
@@ -63,6 +63,7 @@ const PROVINCE_FILTER_OPTIONS = [
 // --- Main Page Component ---
 const AppelOffrePage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
+    const [provinceFilter, setProvinceFilter] = useState(null); // Keep state
     const action = searchParams.get('action');
     const isCreating = action === 'create';
 
@@ -128,7 +129,14 @@ const AppelOffrePage = () => {
             meta: { align: 'center', enableGlobalFilter: true },
         },
     ], []); // Dependency array is empty
-
+    const dynamicFetchUrl = useMemo(() => {
+        let url = '/appel-offres'; // Base URL segment
+        if (provinceFilter) {
+            // Append the province filter as a query parameter
+            url += `?province=${encodeURIComponent(provinceFilter)}`;
+        }
+        return url;
+    }, [provinceFilter]);
     // --- Filter Rendering Function ---
     // Added Province Filter (Single Select for filtering, not multi)
     const renderAppelOffreFilters = useCallback((table) => {
@@ -138,14 +146,16 @@ const AppelOffrePage = () => {
         // Add province filter column if you want to filter by ONE province at a time
         const provinceColumn = table.getColumn('provincesList'); // Use the column ID
         const isAnyColumnFiltered = table.getState().columnFilters.length > 0;
-
+        const handleProvinceChange = (selectedOption) => {
+            setProvinceFilter(selectedOption?.value ?? null); // Update state
+        };
+        const selectedProvinceFilterOption = PROVINCE_FILTER_OPTIONS.find(option => provinceFilter === option.value) || null;
         const currentPortailFilterValue = portailColumn?.getFilterValue();
         const selectedPortailOption = PORTAIL_FILTER_OPTIONS.find(option => option.value === String(currentPortailFilterValue)) || null;
 
         // Get current province filter value (will be a string or undefined)
         const currentProvinceFilterValue = provinceColumn?.getFilterValue();
         console.log("Current Province Filter Value:", provinceColumn);
-        const selectedProvinceFilterOption = PROVINCE_FILTER_OPTIONS.find(option => currentProvinceFilterValue==option.value ) || null;
 
 
         return (
@@ -171,14 +181,10 @@ const AppelOffrePage = () => {
                         inputId="filterProvinceAOSelect"
                         options={PROVINCE_FILTER_OPTIONS}
                         value={selectedProvinceFilterOption}
-                        // Important: How filtering JSON array works depends HEAVILY on DynamicTable's
-                        // filter functions OR requires server-side filtering implementation.
-                        // This sets the filter value; DynamicTable needs to know how to use it.
-                        // If DynamicTable doesn't support JSON contains filtering, this filter
-                        // might need to be handled via API request parameters instead.
-                        onChange={option => provinceColumn?.setFilterValue(option?.value ?? undefined)}
+                        onChange={handleProvinceChange}
                         placeholder="Toutes Provinces..." isClearable
-                        styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }} menuPortalTarget={document.body}
+                        styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }) }} 
+                        menuPortalTarget={document.body}
                         aria-label="Filtrer par province"
                     />
                 </Form.Group>
@@ -198,12 +204,15 @@ const AppelOffrePage = () => {
                 </Form.Group>
 
                 {/* Reset Button */}
-                <Button variant="outline-secondary" size="sm" onClick={() => table.resetColumnFilters()} disabled={!isAnyColumnFiltered} className="w-100 mt-3">
+                <Button variant="outline-secondary" size="sm" onClick={() => {
+                     
+                    table.resetColumnFilters()
+                    setProvinceFilter(null);}} disabled={!provinceFilter && !isAnyColumnFiltered} className="w-100 mt-3">
                    <FontAwesomeIcon icon={faTimes} className="me-2"/> Réinitialiser Filtres Spécifiques
                 </Button>
             </Form>
         );
-    }, []);
+    }, [provinceFilter]);
 
 
     // --- DynamicTable Configuration ---
@@ -232,7 +241,7 @@ const AppelOffrePage = () => {
                    />
               ) : (
                   <DynamicTable
-                      fetchUrl="/appel-offres"
+                      fetchUrl={dynamicFetchUrl}
                       // Use the key the controller returns for the list
                       dataKey="appel_offres" // Ensure this matches controller response
                       deleteUrlBase="/appel-offres"
