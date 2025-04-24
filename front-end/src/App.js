@@ -34,6 +34,7 @@ import PartnerSummaryPage from './gestion_conventions/partenaire_sum_views/Partn
 import OrdreServicePage from './gestion_conventions/ordreservice_views/OrdreServicePage';
 import WelcomePage from './gestion_conventions/components/welcomePage';
 
+import ActivityLogPage from './gestion_conventions/gestion_historique_views/ActivityLogPage'; // Import the ActivityLogPage component
 
 // --- Axios Configuration (Keep from App.js 1) ---
 axios.defaults.baseURL = 'http://localhost:8000/api';
@@ -267,6 +268,7 @@ function AppContent() {
                     <Route path='/finance/partner-summary' element={isAuthenticated ? <PartnerSummaryPage currentUser={currentUser} /> : <Navigate to="/login" replace />} />
                     <Route path='/ordres-service' element={isAuthenticated ? <OrdreServicePage currentUser={currentUser} /> : <Navigate to="/login" replace />} />
                     {/* --- End Added Routes --- */}
+                    <Route path='/historique' element={isAuthenticated ? <ActivityLogPage currentUser={currentUser} /> : <Navigate to="/login" replace />} />
 
 
                     {/* Catch-all Route */}

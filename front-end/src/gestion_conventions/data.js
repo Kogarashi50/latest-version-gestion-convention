@@ -4,7 +4,8 @@ import {
   faProjectDiagram, faSitemap, faFileContract, faHandshake, faShapes,
   faHelmetSafety, faCity, faClipboardCheck, faMap, faUsersCog, faTasks,
   faFileInvoiceDollar, faChevronDown, faFileSignature, faFileAlt, faTachometerAlt,
-  faUserTag, faScroll, faGavel // Added faGavel for Appel d'Offre
+  faUserTag, faScroll, faGavel,faHistory
+   // Added faGavel for Appel d'Offre
 } from "@fortawesome/free-solid-svg-icons";
 
 // --- Permission Constants ---
@@ -137,6 +138,9 @@ const menuItems = [
   { id: 103, type: 'heading', label: "PARAMÉTRAGE", path: '#' },
   { id: 14, icon: faUsersCog, label: "Utilisateurs", path: "/users", type: 'item', requiredPermission: PERMISSIONS.MANAGE_USERS },
   { id: 98, icon: faUserTag, label: "Rôles & Permissions", path: "/roles", type: 'item', requiredPermission: PERMISSIONS.MANAGE_ROLES },
+  { id: 99, icon: faHistory, label: "Historique", path: "/historique", type: 'item'
+    // , requiredPermission: PERMISSIONS.MANAGE_USERS
+   },
 
 ];
 

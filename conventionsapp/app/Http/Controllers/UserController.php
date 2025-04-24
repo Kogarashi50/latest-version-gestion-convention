@@ -11,7 +11,8 @@ use Illuminate\Validation\Rule;
 use Exception;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Role; // <-- Import Role model
-
+use Illuminate\Http\JsonResponse; // <-- Make sure it's THIS namespace
+use Illuminate\Support\Facades\DB;
 class UserController extends Controller
 {
     private $guardName = 'sanctum'; // Or your relevant API guard name
@@ -194,5 +195,44 @@ class UserController extends Controller
              // Specific check for FK constraints might not be needed if soft deleting
             return response()->json(['message' => 'Erreur lors de la suppression de l\'utilisateur.'], 500);
        }
+    }
+    public function getOptions(): \Illuminate\Http\JsonResponse // Correct type hint
+    {
+        try {
+            // Use Query Builder or Eloquent with JOIN for efficiency
+            $users = User::query()
+                // Join the fonctionnaires table based on the foreign key relationship
+                // Adjust column names 'fonctionnaire_id' and 'fonctionnaires.id' if they differ
+                ->leftJoin('fonctionnaires', 'users.fonctionnaire_id', '=', 'fonctionnaires.id')
+                // Select the user ID, user email (as fallback), and concatenate fonctionnaire names
+                ->select(
+                    'users.id',
+                    'users.email',
+                    'fonctionnaires.prenom AS f_prenom', // Select prenom with alias
+                    'fonctionnaires.nom AS f_nom',       // Select nom with alias
+                    DB::raw("CONCAT_WS(' ', fonctionnaires.prenom, fonctionnaires.nom) AS nom_complet")
+                )
+                // ->where('users.status', 'active') // Optional: Filter users by status if needed
+                ->orderBy('nom_complet', 'asc')    // Order by the calculated full name
+                ->get();
+
+            // Format for react-select { value: user_id, label: 'Nom Complet (or Email)' }
+            $options = $users->map(function ($user) {
+                // Use the calculated nom_complet; if it's empty or null, fallback to email
+                $label = $user->f_prenom.' '.$user->f_nom;
+                return [
+                    'value' => $user->id,
+                    'label' =>  $label  // Use name if not empty, else email
+                ];
+            });
+
+            return response()->json($options);
+
+        } catch (\Exception $e) {
+            Log::error('Error fetching user options for dropdown: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString() // Log trace for debugging
+            ]);
+            return response()->json(['message' => 'Erreur serveur lors de la récupération des utilisateurs.'], 500);
+        }
     }
 }

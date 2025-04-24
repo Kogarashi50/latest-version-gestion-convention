@@ -34,7 +34,8 @@ use App\Http\Controllers\EngagementFinancierController; // For Project Engagemen
 use App\Http\Controllers\VersementController;       // For Project Payments (PP)
 use App\Http\Controllers\OrdreServiceController;
 use App\Http\Controllers\ReportController;
-use App\Http\Controllers\AppelOffreController; // <-- ADD THIS IMPORT
+use App\Http\Controllers\AppelOffreController; 
+use App\Http\Controllers\Api\ActivityLogController; 
 
 /*
 |--------------------------------------------------------------------------
@@ -77,6 +78,9 @@ Route::delete('/appel-offres/{appel_offre}', [AppelOffreController::class, 'dest
         $responseData['permissions'] = $user->getAllPermissions()->pluck('name')->toArray();
         return response()->json($responseData);
      })->name('api.user.details');
+     Route::get('/users/options', [UserController::class, 'getOptions'])
+     ->name('api.users.options');    
+     
 
     // --- User & Role Management (Working fine with simple middleware) ---
     Route::apiResource('users', UserController::class)->middleware('permission:manage users');
@@ -258,7 +262,16 @@ Route::delete('/appel-offres/{appel_offre}', [AppelOffreController::class, 'dest
 
     // --- Reporting Route (Keep as is) ---
    
-        
+    // Route::middleware('permission:view activity log')->group(function () { // Apply permission to the group
+        Route::get('/activity-log', [ActivityLogController::class, 'index'])
+             ->name('api.activity_log.index');
+
+        Route::get('/activity-log/event-types', [ActivityLogController::class, 'getEventTypes'])
+             ->name('api.activity_log.event_types');
+        Route::get('/activity-log/{id}', [ActivityLogController::class, 'show'])
+             ->where('id', '[0-9]+')
+             ->name('api.activity_log.show');
+//    });
          
 
 }); // End auth:sanctum group 
