@@ -54,7 +54,7 @@ const getPublicFileUrl = (baseApiUrl, relativePath) => {
             baseUrl += url.pathname.substring(0, url.pathname.indexOf('/api'));
         }
         baseUrl = baseUrl.replace(/\/$/, '');
-        return `${baseUrl}/storage/${relativePath.replace(/^\//, '')}`;
+        return `${baseUrl}/${relativePath.replace(/^\//, '')}`;
     } catch (e) {
         console.error("Error constructing public URL:", e);
         return null;

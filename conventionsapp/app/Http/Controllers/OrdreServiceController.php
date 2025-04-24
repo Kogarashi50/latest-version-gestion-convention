@@ -2,37 +2,37 @@
 
 namespace App\Http\Controllers;
 
+// Models
 use App\Models\OrdreService;
-use App\Models\MarchePublic; // Needed for validation (exists rule)
+use App\Models\MarchePublic; // Included for validation
+
+// Facades and Classes
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File; // *** Use File facade ***
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Auth; // Optional: If using authentication for cree_par
+use Illuminate\Support\Facades\Auth; // If using authentication for cree_par
+use Illuminate\Support\Str;         // For generating random strings
+use Illuminate\Http\JsonResponse;
+use Throwable; // Catch broader errors/exceptions
 
 class OrdreServiceController extends Controller
 {
-    // Base path for storing attached files within the 'public' disk.
-    // Remember to run `php artisan storage:link`
-    private $filePathPrefix = 'ordres_service/attachments';
+    // *** Define relative path prefix for storage in DB and URL construction ***
+    // This path is relative to the 'public' directory root
+    private $fileUploadPath = 'uploads/ordres_service/attachments';
 
     /**
-     * Display a listing of all OrdreService resources.
+     * Display a listing of OrdreService resources.
      * GET /api/ordres-service
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        // Optional: Add authorization check if needed
-        // Gate::authorize('viewAny', OrdreService::class);
-
         try {
-            Log::info("Fetching list of all Ordres de Service.");
-            $query = OrdreService::with(
-                // Eager load necessary fields from the related MarchePublic
-                'marchePublic:id,numero_marche,intitule'
-            );
+            Log::info("Fetching list of Ordres de Service...");
+            $query = OrdreService::with('marchePublic:id,numero_marche,intitule');
 
             // --- Searching ---
             if ($search = $request->query('search')) {
@@ -49,212 +49,174 @@ class OrdreServiceController extends Controller
 
             // --- Filtering by Marche Public ---
             if ($marcheId = $request->query('marche_id')) {
-                 Log::debug("Filtering Ordres de Service by marche_id.", ['marche_id' => $marcheId]);
                 $query->where('marche_id', $marcheId);
             }
 
             // --- Filtering by Type ---
              if ($type = $request->query('type')) {
-                 if (in_array($type, ['commencement', 'arret'])) {
-                     Log::debug("Filtering Ordres de Service by type.", ['type' => $type]);
-                     $query->where('type', $type);
-                 } else {
-                      Log::warning("Invalid type filter received.", ['type_received' => $type]);
-                 }
+                 if (in_array($type, ['commencement', 'arret'])) { $query->where('type', $type); }
              }
 
             // --- Sorting ---
             $sortField = $request->query('sort', 'date_emission');
             $sortDirection = $request->query('direction', 'desc');
             $allowedSorts = ['numero', 'date_emission', 'type'];
+            if (in_array($sortField, $allowedSorts)) { $query->orderBy($sortField, $sortDirection); }
+            else { $query->orderBy('date_emission', 'desc'); }
 
-            if (in_array($sortField, $allowedSorts)) {
-                Log::debug("Sorting Ordres de Service.", ['sort_by' => $sortField, 'direction' => $sortDirection]);
-                $query->orderBy($sortField, $sortDirection);
-            } else {
-                 $query->orderBy('date_emission', 'desc'); // Default sort
-            }
-
-
-            // --- Pagination or Get All ---
+            // --- Pagination ---
              $perPage = $request->query('per_page', 15);
-             Log::debug("Paginating results.", ['per_page' => $perPage]);
-             $ordres = $query->paginate($perPage); // Use pagination
+             $ordres = $query->paginate($perPage);
+
+            // --- Generate Public URLs ---
+            $appBaseUrl = rtrim(config('app.url', 'http://localhost:8000'), '/');
+            $ordres->getCollection()->transform(function ($ordre) use ($appBaseUrl) {
+                if ($ordre->fichier_joint) {
+                     // Construct URL from the relative path stored in the DB
+                     $ordre->fichier_joint_url = $appBaseUrl . '/' . ltrim($ordre->fichier_joint, '/');
+                 } else {
+                     $ordre->fichier_joint_url = null;
+                 }
+                 return $ordre;
+             });
+             // --- End URL generation ---
 
             Log::info("Successfully fetched Ordres de Service list/page.");
-            return response()->json($ordres); // Return paginated response
+            // Return paginated response (Laravel automatically structures this)
+            return response()->json($ordres);
 
         } catch (\Exception $e) {
-            Log::error("Error fetching all Ordres de Service list: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            Log::error("Error fetching Ordres de Service list: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json(['message' => 'Erreur serveur lors de la récupération des ordres de service.'], 500);
         }
     }
 
     /**
-     * Store a newly created OrdreService resource in storage.
+     * Store a newly created OrdreService resource.
      * POST /api/ordres-service
-     * Expects 'marche_id' in the request body.
      */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
-        // Optional: Add authorization check if needed
-        // Gate::authorize('create', OrdreService::class);
-
-        Log::info("--- Standalone OrdreService Store Request Received ---");
-        Log::debug('Raw Request Keys.', ['keys' => array_keys($request->all())]);
-        Log::debug('Uploaded File Info check.', ['has_file' => $request->hasFile('fichier_joint') && $request->file('fichier_joint')?->isValid()]);
-        Log::debug('Received marche_id value.', ['marche_id' => $request->input('marche_id')]);
+        Log::info("--- OrdreService Store Request Received (Using Public Path) ---");
 
         $validator = Validator::make($request->all(), [
-            'marche_id' => [
-                'required',
-                'integer',
-                Rule::exists('marche_public', 'id') // Ensure the MarchePublic exists
-            ],
-            'type' => ['required', Rule::in(['commencement', 'arret'])],
-            'numero' => [
-                'required',
-                'string',
-                'max:100',
-                // Unique within the specific marche_id provided in the request
-                 Rule::unique('ordre_service', 'numero')
-                    ->where(function ($query) use ($request) {
-                        return $query->where('marche_id', $request->input('marche_id')); // Use input marche_id
-                    })
-            ],
-            'date_emission' => 'required|date_format:Y-m-d',
-            'description' => 'nullable|string',
-            'fichier_joint' => [
-                'nullable',
-                'file',
-                'mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,dwg,zip,rar', // Adjust as needed
-                'max:20480', // 20MB example - ADJUST AS NEEDED
-            ],
-            // cree_par is set automatically below
-        ]);
-
-        if ($validator->fails()) {
-            Log::error("Standalone OrdreService Store validation failed.", ['errors' => $validator->errors()->toArray()]);
-            return response()->json(['message' => 'Erreurs de validation.', 'errors' => $validator->errors()], 422);
-        }
-        Log::info('Standalone OrdreService Store validation passed.');
+             'marche_id' => ['required', 'integer', Rule::exists('marche_public', 'id')],
+             'type' => ['required', Rule::in(['commencement', 'arret'])],
+             'numero' => ['required', 'string', 'max:100', Rule::unique('ordre_service', 'numero')->where(fn ($q) => $q->where('marche_id', $request->input('marche_id')))],
+             'date_emission' => 'required|date_format:Y-m-d',
+             'description' => 'nullable|string',
+             'fichier_joint' => ['nullable', 'file', 'mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,dwg,zip,rar', 'max:20480'], // Adjust max size (20MB here)
+         ]);
+         if ($validator->fails()) {
+              Log::error("OrdreService Store validation failed.", ['errors' => $validator->errors()->toArray()]);
+              return response()->json(['message' => 'Erreurs de validation.', 'errors' => $validator->errors()], 422);
+         }
+         Log::info('OrdreService Store validation passed.');
 
         $validatedData = $validator->validated();
-        $storedFilePath = null;
+        $storedRelativePath = null; // Path relative to public_path() to store in DB
+        $storedAbsolutePath = null; // Absolute path for potential rollback cleanup
 
-        // --- Transaction Optional - Consider if multiple critical steps ---
-        // DB::beginTransaction();
+        // Define target directory based on marche_id
+        $targetDirRelative = $this->fileUploadPath . '/' . $validatedData['marche_id'];
+        $targetDirAbsolute = public_path($targetDirRelative); // Get absolute path
 
+        DB::beginTransaction();
         try {
+            // --- Ensure Target Directory Exists and is Writable (Using File Facade) ---
+            if (!File::isDirectory($targetDirAbsolute)) {
+                Log::info("Dossier cible '{$targetDirAbsolute}' inexistant, création...");
+                if (!File::makeDirectory($targetDirAbsolute, 0775, true, true)) {
+                    throw new \Exception("Impossible créer dossier: {$targetDirAbsolute}. Vérifiez les permissions.");
+                }
+                Log::info("Dossier cible créé.");
+            }
+            // Note: isWritable check might be problematic depending on server setup, usually makeDirectory handles permissions.
+            // if (!File::isWritable($targetDirAbsolute)) { throw new \Exception("Permissions écriture manquantes pour: {$targetDirAbsolute}"); }
+            // ---
+
             // 1. Handle File Upload (if present)
             if ($request->hasFile('fichier_joint') && $request->file('fichier_joint')->isValid()) {
                 $file = $request->file('fichier_joint');
                 $originalName = $file->getClientOriginalName();
-                // Store under a subdirectory named after the marche_id for better organization
-                $targetPath = $this->filePathPrefix . '/' . $validatedData['marche_id'];
-                Log::info("Storing OrdreService file.", ['original_name' => $originalName, 'target_path' => $targetPath]);
+                // Generate a safe and unique filename
+                $safeOriginalName = preg_replace('/[^A-Za-z0-9\._-]/', '_', $originalName);
+                $generatedFilename = date('Ymd-His') . '_' . Str::random(5) . '_' . $safeOriginalName;
 
-                $storedFilePath = $file->storeAs($targetPath, $originalName, 'public');
+                Log::info("Moving OrdreService file.", ['original_name' => $originalName, 'target_dir' => $targetDirAbsolute, 'new_filename' => $generatedFilename]);
+                // *** Use move() method with absolute path ***
+                $file->move($targetDirAbsolute, $generatedFilename);
 
-                if (!$storedFilePath) {
-                    Log::error("Failed to store OrdreService file.", ['original_name' => $originalName]);
-                    throw new \Exception("Erreur lors du stockage du fichier joint.");
-                }
-                Log::info("OrdreService file stored.", ['stored_path' => $storedFilePath]);
-                $validatedData['fichier_joint'] = $storedFilePath; // Use the stored path for DB
+                // *** Store RELATIVE path (from public root) in DB ***
+                // Ensure no leading slash if $targetDirRelative already has one (though it shouldn't based on definition)
+                $storedRelativePath = ltrim($targetDirRelative . '/' . $generatedFilename, '/');
+                $storedAbsolutePath = $targetDirAbsolute . '/' . $generatedFilename; // For rollback
+
+                Log::info("OrdreService file moved.", ['stored_path' => $storedRelativePath]);
+                $validatedData['fichier_joint'] = $storedRelativePath;
             } else {
-                // Ensure field is null if no file uploaded
                 $validatedData['fichier_joint'] = null;
             }
 
-
-            // --- CORRECTED Section for Setting Creator ID ---
-            // 2. Set Creator ID using the authenticated user model
-            $authenticatedUser = $request->user(); // Get the authenticated Utilisateur model instance
-
+            // 2. Set Creator ID
+            $authenticatedUser = $request->user(); // Get authenticated user
             if ($authenticatedUser) {
-                // Access the correct primary key defined in your Utilisateur model
-                $userId = $authenticatedUser->idutilisateur; // <-- Use the correct primary key name
-
-                Log::debug('Attempting to set cree_par from request user.', [
-                    'user_found' => true,
-                    'user_id_value' => $userId,         // Log the value retrieved
-                    'user_id_type' => gettype($userId) // Log the data type
-                ]);
-
-                // Double-check if the retrieved ID is actually an integer
+                // *** IMPORTANT: Use the correct primary key of your User model ***
+                 $userId = $authenticatedUser->id; // Or $authenticatedUser->id, etc.
                 if (is_numeric($userId) && filter_var($userId, FILTER_VALIDATE_INT) !== false) {
-                    $validatedData['cree_par'] = (int) $userId; // Assign the integer ID
+                    $validatedData['cree_par'] = (int) $userId;
                 } else {
-                     // Log an error if the primary key wasn't an integer as expected
-                     Log::error('User primary key (idutilisateur) did not return an integer value!', [
-                        'value_returned' => $userId,
-                        'type_returned' => gettype($userId)
-                     ]);
-                     // Set to null if the column is nullable, otherwise this will cause an error later
+                     Log::error('Authenticated user primary key did not return an integer!', ['key_name' => 'id', 'value_returned' => $userId]);
+                     // Decide: throw error or set to null? Assume nullable for now.
                      $validatedData['cree_par'] = null;
-                     // If cree_par MUST have a value, you might want to throw an exception here instead:
-                     // throw new \Exception('Authenticated user ID is not a valid integer.');
+                     // If required: throw new \Exception('Authenticated user ID is invalid.');
                 }
             } else {
-                 // Handle case where no user is authenticated (e.g., API token issue)
-                 Log::warning('No authenticated user found via $request->user() for cree_par, setting to null.');
-                 $validatedData['cree_par'] = null;
-            }
-            // --- END CORRECTED Section ---
-
-
-            // Keep this check: Remove 'fichier_joint' key if value is null
-            // (Only strictly needed if the DB column *cannot* be NULL)
-            if (array_key_exists('fichier_joint', $validatedData) && is_null($validatedData['fichier_joint'])) {
-                unset($validatedData['fichier_joint']);
+                 Log::warning('No authenticated user found for cree_par.');
+                 $validatedData['cree_par'] = null; // Set to null if column is nullable
             }
 
-             // Keep this check: Remove 'cree_par' key if value is null
-             // (Only strictly needed if the DB column *cannot* be NULL)
-            if (array_key_exists('cree_par', $validatedData) && is_null($validatedData['cree_par'])) {
-                // If your 'cree_par' column *can* be NULL, you can REMOVE this unset line.
-                // If it *cannot* be NULL, and you didn't throw an exception above when the ID was invalid,
-                // this unset might be necessary, but it's better to ensure a valid ID or handle the error earlier.
-                // unset($validatedData['cree_par']);
-            }
-
+            // Optional: Unset null keys if DB columns are NOT nullable
+            // if (array_key_exists('fichier_joint', $validatedData) && is_null($validatedData['fichier_joint'])) { unset($validatedData['fichier_joint']); }
+            // if (array_key_exists('cree_par', $validatedData) && is_null($validatedData['cree_par'])) { unset($validatedData['cree_par']); }
 
             // 3. Create Database Record
-            Log::info("Creating OrdreService record with validated data.", ['data' => $validatedData]);
             $ordreService = OrdreService::create($validatedData);
             Log::info("OrdreService created successfully.", ['id' => $ordreService->id]);
 
-            // 4. Eager load relationship for the response
-            $ordreService->load('marchePublic:id,numero_marche,intitule');
+            // --- Commit ---
+            DB::commit();
 
-            // DB::commit(); // Commit if using transaction
+            // --- Prepare Response with URL ---
+            $ordreService->load('marchePublic:id,numero_marche,intitule'); // Load relation
+            $appBaseUrl = rtrim(config('app.url', 'http://localhost:8000'), '/');
+            $responseData = $ordreService->toArray(); // Convert *after* loading relations
 
-            return response()->json(['message' => 'Ordre de service créé avec succès.', 'ordre_service' => $ordreService], 201);
+            if (!empty($responseData['fichier_joint'])) {
+                // Construct URL from the relative path stored in the DB
+                $responseData['fichier_joint_url'] = $appBaseUrl . '/' . ltrim($responseData['fichier_joint'], '/');
+            } else {
+                $responseData['fichier_joint_url'] = null;
+            }
+            // --- End Response Preparation ---
 
-        } catch (\Throwable $e) {
-            // DB::rollBack(); // Rollback if using transaction
+            // Return the modified array data
+            return response()->json(['message' => 'Ordre de service créé avec succès.', 'ordre_service' => $responseData], 201);
+
+        } catch (Throwable $e) { // Catch Throwable for wider error catching
+            DB::rollBack();
             Log::error("Error creating Ordre Service: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
 
-            // Attempt to cleanup stored file if creation failed AFTER storage
-            if ($storedFilePath && Storage::disk('public')->exists($storedFilePath)) {
-                Log::warning("Attempting cleanup of stored file due to creation error.", ['file_path' => $storedFilePath]);
-                try {
-                    Storage::disk('public')->delete($storedFilePath);
-                    Log::info("Cleaned up stored file.", ['file_path' => $storedFilePath]);
-                } catch (\Exception $fsEx) {
-                    Log::error("Failed to cleanup stored file during error handling.", ['file_path' => $storedFilePath, 'exception' => $fsEx->getMessage()]);
-                }
+            // --- Attempt cleanup using File facade and absolute path ---
+            if ($storedAbsolutePath && File::exists($storedAbsolutePath)) {
+                 Log::warning("Rolling back. Attempting cleanup of moved file.", ['file_path' => $storedAbsolutePath]);
+                 try { File::delete($storedAbsolutePath); Log::info("Cleaned up moved file.", ['file_path' => $storedAbsolutePath]); }
+                 catch (\Exception $fsEx) { Log::error("Failed cleanup moved file.", ['exception' => $fsEx->getMessage()]); }
             }
+            // ---
 
-            // Provide specific error message if possible (e.g., from caught exception)
             $errorMessage = 'Erreur serveur lors de la création.';
-            if ($e instanceof \Illuminate\Database\QueryException && str_contains($e->getMessage(), 'constraint violation')) {
-                 $errorMessage = 'Erreur de base de données lors de la création (vérifiez les contraintes).';
-            } elseif ($e instanceof \Exception && $e->getMessage() === 'Erreur lors du stockage du fichier joint.') {
-                 $errorMessage = 'Erreur lors du stockage du fichier joint.';
-            }
-
+            if ($e instanceof \Exception && (str_contains($e->getMessage(), 'Impossible créer dossier') || str_contains($e->getMessage(), 'Permissions écriture manquantes'))) { $errorMessage = $e->getMessage(); }
             return response()->json(['message' => $errorMessage, 'error_details' => $e->getMessage()], 500);
         }
     }
@@ -263,205 +225,211 @@ class OrdreServiceController extends Controller
      * Display the specified OrdreService resource.
      * GET /api/ordres-service/{ordre_service}
      */
-    public function show(OrdreService $ordre_service)
+    public function show(OrdreService $ordre_service): JsonResponse
     {
-        // Optional: Add authorization check here if needed
-        // Gate::authorize('view', $ordre_service);
-
         try {
              $ordre_service->load('marchePublic:id,numero_marche,intitule');
+
+             // --- Generate URL for response ---
+             $appBaseUrl = rtrim(config('app.url', 'http://localhost:8000'), '/');
+             // Convert to array first to modify it before sending
+             $responseData = $ordre_service->toArray();
+
+             if (!empty($responseData['fichier_joint'])) {
+                 $responseData['fichier_joint_url'] = $appBaseUrl . '/' . ltrim($responseData['fichier_joint'], '/');
+             } else {
+                 $responseData['fichier_joint_url'] = null;
+             }
+             // ---
+
              Log::info("Showing OrdreService details.", ['id' => $ordre_service->id]);
-             return response()->json(['ordre_service' => $ordre_service]);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-             // Use the ID from the request if the model binding failed before this point
-             $requestedId = request()->route('ordre_service');
-             Log::warning("Ordre de service not found during show.", ['id_requested' => $requestedId]);
-             return response()->json(['message' => 'Ordre de service non trouvé.'], 404);
+             // Return the modified array wrapped in the key expected by frontend
+             return response()->json(['ordre_service' => $responseData]);
+
         } catch (\Exception $e) {
-             Log::error("Error fetching Ordre Service ID {$ordre_service->id}: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]); // Use bound model ID if available
+             if ($e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException) {
+                 return response()->json(['message' => 'Ordre de service non trouvé.'], 404);
+             }
+             Log::error("Error fetching Ordre Service ID {$ordre_service->id}: " . $e->getMessage());
              return response()->json(['message' => 'Erreur serveur.'], 500);
-        }
+         }
     }
 
-  
-    public function update(Request $request, OrdreService $ordre_service)
+
+    /**
+     * Update the specified OrdreService resource in storage.
+     * PUT/PATCH /api/ordres-service/{ordre_service}
+     * Note: For simplicity with form-data and file uploads, often handled via POST with a _method=PUT field.
+     */
+    public function update(Request $request, OrdreService $ordre_service): JsonResponse
     {
-        // Optional: Add authorization check here if needed
-        // Gate::authorize('update', $ordre_service);
+        Log::info("--- OrdreService Update Request Received for ID: {$ordre_service->id} (Using Public Path) ---");
 
-        Log::info("--- OrdreService Update Request Received ---", ['id' => $ordre_service->id]);
-        Log::debug('Raw Request Keys.', ['keys' => array_keys($request->all())]);
-        Log::debug('Uploaded File Info check.', ['has_file' => $request->hasFile('fichier_joint') && $request->file('fichier_joint')?->isValid()]);
-        Log::debug('Delete File Flag value.', ['delete_flag' => $request->input('delete_fichier_joint')]);
-        Log::debug('Received marche_id for update.', ['marche_id' => $request->input('marche_id')]); // Log incoming marche_id
-
-        // Validation rules for update - NOW INCLUDES marche_id
         $validator = Validator::make($request->all(), [
-            // *** Add validation for marche_id during update ***
-            'marche_id' => [
-                'required', // Make it required if changing is allowed
-                'integer',
-                Rule::exists('marche_public', 'id') // Ensure the new MarchePublic exists
-            ],
+            'marche_id' => ['required', 'integer', Rule::exists('marche_public', 'id')],
             'type' => ['required', Rule::in(['commencement', 'arret'])],
-            'numero' => [
-                'required',
-                'string',
-                'max:100',
-                 // Unique within the potentially *new* marche_id provided in the request, ignoring self
-                Rule::unique('ordre_service', 'numero')
-                    ->where(function ($query) use ($request) {
-                         // Use the incoming marche_id from the request for the check
-                        return $query->where('marche_id', $request->input('marche_id'));
-                    })
-                    ->ignore($ordre_service->id) // Ignore the current record ID
-            ],
+            'numero' => ['required', 'string', 'max:100', Rule::unique('ordre_service', 'numero')->where(fn ($q) => $q->where('marche_id', $request->input('marche_id')))->ignore($ordre_service->id)],
             'date_emission' => 'required|date_format:Y-m-d',
             'description' => 'nullable|string',
-            'fichier_joint' => [
-                'nullable', 'file',
-                'mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,dwg,zip,rar',
-                'max:20480',
-            ],
-            'delete_fichier_joint' => 'nullable|boolean',
+            'fichier_joint' => ['nullable', 'file', 'mimes:pdf,doc,docx,xls,xlsx,jpg,jpeg,png,dwg,zip,rar', 'max:20480'],
+            'delete_fichier_joint' => 'nullable|boolean', // Flag from frontend
         ]);
-
         if ($validator->fails()) {
-            Log::error("OrdreService Update validation failed.", ['id' => $ordre_service->id, 'errors' => $validator->errors()->toArray()]);
-            return response()->json(['message' => 'Erreurs de validation.', 'errors' => $validator->errors()], 422);
+             Log::error("OrdreService Update validation failed.", ['id' => $ordre_service->id, 'errors' => $validator->errors()->toArray()]);
+             return response()->json(['message' => 'Erreurs de validation.', 'errors' => $validator->errors()], 422);
         }
-        Log::info("OrdreService Update validation passed.", ['id' => $ordre_service->id]);
+        Log::info("OrdreService Update validation passed for ID: {$ordre_service->id}");
 
-        $validatedData = $validator->validated(); // Now includes marche_id
-        $oldFilePath = $ordre_service->fichier_joint;
-        $newFilePath = null;
-        $fileToDelete = null;
+        $validatedData = $validator->validated();
+        $oldRelativePath = $ordre_service->fichier_joint;
+        $oldAbsolutePath = $oldRelativePath ? public_path($oldRelativePath) : null;
+        $newRelativePath = null; // Path to store in DB if new file uploaded
+        $newAbsolutePath = null; // Absolute path of new file for rollback cleanup
+        $fileToDeleteAfterCommit = null; // Absolute path of OLD file to delete
 
-        // --- Determine target directory for NEW files ---
-        // Use the INCOMING marche_id from the validated data for the new file path
-        $targetMarcheIdForNewFile = $validatedData['marche_id'];
+        // Define target directory based on *potentially new* marche_id
+        $targetDirRelative = $this->fileUploadPath . '/' . $validatedData['marche_id'];
+        $targetDirAbsolute = public_path($targetDirRelative);
 
         DB::beginTransaction();
-        Log::info("OrdreService Update transaction started.", ['id' => $ordre_service->id]);
-
         try {
+            // Ensure target directory exists
+            if (!File::isDirectory($targetDirAbsolute)) {
+                if (!File::makeDirectory($targetDirAbsolute, 0775, true, true)) { throw new \Exception("Impossible créer dossier MAJ: {$targetDirAbsolute}"); }
+            }
+            // if (!File::isWritable($targetDirAbsolute)) { throw new \Exception("Permissions écriture manquantes MAJ: {$targetDirAbsolute}"); }
+            // ---
+
             // --- Handle File Logic ---
             $deleteExistingFile = $request->boolean('delete_fichier_joint');
 
             if ($request->hasFile('fichier_joint') && $request->file('fichier_joint')->isValid()) {
+                // New file uploaded - Replace old one
                 $file = $request->file('fichier_joint');
                 $originalName = $file->getClientOriginalName();
-                // *** Store new file under the potentially NEW marche_id subdir ***
-                $targetPath = $this->filePathPrefix . '/' . $targetMarcheIdForNewFile;
-                Log::info("Storing NEW OrdreService file for update.", ['id' => $ordre_service->id, 'original_name' => $originalName, 'target_path' => $targetPath]);
+                $safeOriginalName = preg_replace('/[^A-Za-z0-9\._-]/', '_', $originalName);
+                $generatedFilename = date('Ymd-His') . '_' . Str::random(5) . '_' . $safeOriginalName;
 
-                $newFilePath = $file->storeAs($targetPath, $originalName, 'public');
-                if (!$newFilePath) throw new \Exception("Erreur stockage nouveau fichier.");
+                Log::info("Moving NEW file for update.", ['original_name' => $originalName, 'target_dir' => $targetDirAbsolute]);
+                $file->move($targetDirAbsolute, $generatedFilename); // Use move()
 
-                Log::info("New file stored.", ['stored_path' => $newFilePath]);
-                $validatedData['fichier_joint'] = $newFilePath;
-                // Mark old file for deletion regardless of marche_id change
-                if ($oldFilePath) $fileToDelete = $oldFilePath;
+                $newRelativePath = ltrim($targetDirRelative . '/' . $generatedFilename, '/');
+                $newAbsolutePath = $targetDirAbsolute . '/' . $generatedFilename; // For rollback
 
-            } elseif ($deleteExistingFile && $oldFilePath) {
-                Log::info("Explicitly deleting existing file.", ['id' => $ordre_service->id, 'file_path' => $oldFilePath]);
+                $validatedData['fichier_joint'] = $newRelativePath; // Set new path for DB update
+                if ($oldAbsolutePath) $fileToDeleteAfterCommit = $oldAbsolutePath; // Mark old file for deletion
+
+            } elseif ($deleteExistingFile && $oldAbsolutePath) {
+                // Delete existing file explicitly
+                Log::info("Marking existing file for deletion.", ['path' => $oldAbsolutePath]);
                 $validatedData['fichier_joint'] = null; // Set path to null in DB
-                $fileToDelete = $oldFilePath; // Mark old file for storage deletion
+                $fileToDeleteAfterCommit = $oldAbsolutePath; // Mark old file for storage deletion
             } else {
-                // Keep existing file path - UNSET fichier_joint from validated data
-                // This PREVENTS overwriting the existing path if no new file/delete action.
-                // If marche_id changes but file doesn't, the path still points to the old location.
+                // Keep existing file path - IMPORTANT: unset from validated data
+                // so the update() call doesn't overwrite the existing path with null.
                 unset($validatedData['fichier_joint']);
-                Log::debug("Keeping existing file path (if any).", ['id' => $ordre_service->id, 'path' => $oldFilePath]);
+                 Log::debug("Keeping existing file path (if any).", ['id' => $ordre_service->id, 'path' => $oldRelativePath]);
             }
+            // Remove helper field from data to be saved
             unset($validatedData['delete_fichier_joint']);
+            // ---
 
             // --- Update Database Record ---
-            // validatedData now includes 'marche_id' which will be updated
-            Log::info("Updating OrdreService record.", ['id' => $ordre_service->id, 'data' => $validatedData]);
-            $ordre_service->update($validatedData); // Update using all validated data
+            // validatedData contains marche_id, type, numero, date_emission, description
+            // and potentially fichier_joint (if new or deleted)
+            $ordre_service->update($validatedData);
             Log::info("OrdreService record updated successfully.", ['id' => $ordre_service->id]);
 
-            // --- Commit Transaction ---
             DB::commit();
-            Log::info("OrdreService Update transaction committed.", ['id' => $ordre_service->id]);
+            Log::info("Update transaction committed for ID: {$ordre_service->id}");
 
-            // --- Delete Old File from Storage (AFTER commit) ---
-            // This deletes the file from its ORIGINAL location if it was replaced or marked for deletion.
-            if ($fileToDelete && Storage::disk('public')->exists($fileToDelete)) {
-                 Log::info("Attempting physical deletion of old/replaced file.", ['file_path' => $fileToDelete]);
+            // --- Delete Old File from Storage (AFTER commit, using File facade) ---
+            if ($fileToDeleteAfterCommit && File::exists($fileToDeleteAfterCommit)) {
+                 Log::info("Attempting physical deletion of old/replaced file.", ['file_path' => $fileToDeleteAfterCommit]);
                  try {
-                     Storage::disk('public')->delete($fileToDelete);
-                     Log::info("Successfully deleted file from storage.", ['file_path' => $fileToDelete]);
-                 } catch (\Exception $fsEx) {
-                     Log::error("Failed to delete file from storage post-commit.", ['file_path' => $fileToDelete, 'exception' => $fsEx->getMessage()]);
+                     File::delete($fileToDeleteAfterCommit);
+                     Log::info("Successfully deleted old file from public storage.", ['file_path' => $fileToDeleteAfterCommit]);
+                 }
+                 catch (\Exception $fsEx) {
+                     Log::error("Failed to delete old file from public storage.", ['exception' => $fsEx->getMessage(), 'path' => $fileToDeleteAfterCommit]);
+                     // Don't fail the whole request, just log the error
                  }
             }
 
-            // Return the updated model, eager loading the relationship
-            $ordre_service->load('marchePublic:id,numero_marche,intitule');
-            return response()->json(['message' => 'Ordre de service mis à jour.', 'ordre_service' => $ordre_service]);
-
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            // ... (keep existing error handling and rollback cleanup for $newFilePath) ...
-             Log::error("Error updating Ordre Service ID {$ordre_service->id}: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-            if ($newFilePath && Storage::disk('public')->exists($newFilePath)) {
-                Log::warning("Rolling back transaction. Attempting cleanup of newly stored file.", ['file_path' => $newFilePath]);
-                try { Storage::disk('public')->delete($newFilePath); Log::info("Cleaned up newly stored file.", ['file_path' => $newFilePath]); }
-                catch (\Exception $fsEx) { Log::error("Rollback cleanup: Failed to delete newly stored file.", ['file_path' => $newFilePath, 'exception' => $fsEx->getMessage()]); }
+            // --- Prepare response with URL ---
+            $updatedOrdre = $ordre_service->fresh()->load('marchePublic:id,numero_marche,intitule');
+            $appBaseUrl = rtrim(config('app.url', 'http://localhost:8000'), '/');
+            $responseData = $updatedOrdre->toArray();
+            if (!empty($responseData['fichier_joint'])) {
+                $responseData['fichier_joint_url'] = $appBaseUrl . '/' . ltrim($responseData['fichier_joint'], '/');
+            } else {
+                $responseData['fichier_joint_url'] = null;
             }
+            // ---
+
+            return response()->json(['message' => 'Ordre de service mis à jour.', 'ordre_service' => $responseData]);
+
+        } catch (Throwable $e) { // Catch Throwable
+            DB::rollBack();
+            Log::error("Error updating Ordre Service ID {$ordre_service->id}: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            // --- Rollback cleanup for newly moved file ---
+            if ($newAbsolutePath && File::exists($newAbsolutePath)) {
+                Log::warning("Rolling back update. Attempting cleanup of newly moved file.", ['file_path' => $newAbsolutePath]);
+                try { File::delete($newAbsolutePath); Log::info("Cleaned up newly moved file.", ['file_path' => $newAbsolutePath]); }
+                catch (\Exception $fsEx) { Log::error("Rollback update cleanup: Failed delete newly moved file.", ['exception' => $fsEx->getMessage()]); }
+            }
+            // ---
+
             $errorMessage = 'Erreur serveur lors de la mise à jour.';
-             if ($e instanceof \Exception && $e->getMessage() === 'Erreur stockage nouveau fichier.') { $errorMessage = 'Erreur lors du stockage du nouveau fichier joint.'; }
+            if ($e instanceof \Exception && (str_contains($e->getMessage(), 'Impossible créer dossier') || str_contains($e->getMessage(), 'Permissions écriture manquantes'))) { $errorMessage = $e->getMessage(); }
             return response()->json(['message' => $errorMessage, 'error_details' => $e->getMessage()], 500);
         }
     }
-    
-    
-    public function destroy(OrdreService $ordre_service)
-    {
-        // Optional: Add authorization check here if needed
-        // Gate::authorize('delete', $ordre_service);
 
-        Log::info("--- OrdreService Destroy Request Received ---", ['id' => $ordre_service->id]);
-        $filePath = $ordre_service->fichier_joint; // Get path BEFORE deleting record
+
+    /**
+     * Remove the specified OrdreService resource.
+     * DELETE /api/ordres-service/{ordre_service}
+     */
+    public function destroy(OrdreService $ordre_service): JsonResponse
+    {
+        Log::info("--- OrdreService Destroy Request Received for ID: {$ordre_service->id} (Using Public Path) ---");
+        $relativeFilePath = $ordre_service->fichier_joint; // Get relative path BEFORE deleting record
+        $absoluteFilePath = $relativeFilePath ? public_path($relativeFilePath) : null;
 
         DB::beginTransaction();
-        Log::info("OrdreService Destroy transaction started.", ['id' => $ordre_service->id]);
-
         try {
             // --- Delete Database Record ---
-            Log::info("Deleting OrdreService record.", ['id' => $ordre_service->id]);
             $deleted = $ordre_service->delete();
-
-            if (!$deleted) throw new \Exception("Database deletion failed.");
-            Log::info("OrdreService record deleted successfully.", ['id' => $ordre_service->id]);
+            if (!$deleted) {
+                 throw new \Exception("Database deletion returned false.");
+            }
+            Log::info("OrdreService record deleted successfully from DB.", ['id' => $ordre_service->id]);
 
             // --- Commit Transaction ---
             DB::commit();
-            Log::info("OrdreService Destroy transaction committed.", ['id' => $ordre_service->id]);
+            Log::info("Destroy transaction committed for ID: {$ordre_service->id}");
 
-            // --- Delete File from Storage (AFTER commit) ---
-            if ($filePath && Storage::disk('public')->exists($filePath)) {
-                 Log::info("Attempting physical deletion of associated file.", ['file_path' => $filePath]);
+            // --- Delete File from Storage (AFTER commit, using File facade) ---
+            if ($absoluteFilePath && File::exists($absoluteFilePath)) {
+                 Log::info("Attempting physical deletion of associated public file.", ['file_path' => $absoluteFilePath]);
                  try {
-                     Storage::disk('public')->delete($filePath);
-                     Log::info("Successfully deleted file from storage.", ['file_path' => $filePath]);
+                     File::delete($absoluteFilePath);
+                     Log::info("Successfully deleted file from public storage.", ['file_path' => $absoluteFilePath]);
                  } catch (\Exception $storageEx) {
                      // Log error but don't fail the overall request
-                     Log::error("Error deleting file from storage post-commit.", ['file_path' => $filePath, 'exception' => $storageEx->getMessage()]);
+                     Log::error("Error deleting file from public storage post-commit.", ['exception' => $storageEx->getMessage(), 'path' => $absoluteFilePath]);
                  }
-            } else if ($filePath) {
-                 Log::warning("Associated file path recorded in DB, but not found in storage.", ['file_path' => $filePath]);
+            } elseif ($relativeFilePath) {
+                 Log::warning("Associated file path recorded in DB, but absolute path not found/generated.", ['relative_path' => $relativeFilePath]);
             }
 
+            return response()->json(['message' => 'Ordre de service supprimé avec succès.'], 200);
 
-            return response()->json(['message' => 'Ordre de service supprimé avec succès.'], 200); // Or 204 No Content
-
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) { // Catch Throwable
             DB::rollBack();
             Log::error("Error deleting Ordre Service ID {$ordre_service->id}: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-            // Provide specific error message for constraint violation
+            // Provide specific error message for constraint violation if possible
             if ($e instanceof \Illuminate\Database\QueryException && str_contains($e->getMessage(), 'constraint violation')) {
                  return response()->json(['message' => 'Impossible de supprimer: l\'ordre est peut-être lié à d\'autres enregistrements.'], 409); // 409 Conflict
             }

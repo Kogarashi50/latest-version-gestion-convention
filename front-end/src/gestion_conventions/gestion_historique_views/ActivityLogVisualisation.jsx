@@ -324,8 +324,8 @@ const eventLIEE=(event)=>{
 
     return (
         <> {/* Using fragment as Modal is rendered by DynamicTable */}
-            <Modal.Header className='d-flex justify-content-between activityLog'>
-                <Modal.Title as="h2" className="fw-bold text-dark">
+            <Modal.Header className='d-flex border-0 m-4 bg-white justify-content-between activityLog'>
+                <Modal.Title as="h4" className="fw-bold text-dark">
                     Détails de l'Historique {itemId ? `(ID: ${itemId})` : ''}
                 </Modal.Title>
                 <Button variant="warning" onClick={onClose} className="px-5 fw-bold py-1 rounded-pill shadow-sm">

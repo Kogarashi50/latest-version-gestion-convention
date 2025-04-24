@@ -25,7 +25,7 @@ const getPublicFileUrl = (baseApiUrl, relativePath) => {
             baseUrl += url.pathname.substring(0, url.pathname.indexOf('/api'));
         }
         baseUrl = baseUrl.replace(/\/$/, '');
-        return `${baseUrl}/storage/${relativePath.replace(/^\//, '')}`;
+        return `${baseUrl}/${relativePath.replace(/^\//, '')}`;
     } catch (e) {
         console.error("Error constructing public URL:", e);
         return '#';
@@ -323,7 +323,7 @@ const OrdreServiceForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseA
             submissionPayload.append('delete_fichier_joint', '1');
         }
         if (isEditMode) {
-            submissionPayload.append('_method', 'POST');
+           submissionPayload.append('_method', 'PUT');  // <-- CORRECT
         }
 
         console.log("Submitting FormData to:", apiEndpoint);

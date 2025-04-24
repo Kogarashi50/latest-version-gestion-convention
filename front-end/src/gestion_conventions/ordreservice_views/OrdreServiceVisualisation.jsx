@@ -58,7 +58,7 @@ const getPublicFileUrl = (baseApiUrl, relativePath) => {
         }
         baseUrl = baseUrl.replace(/\/$/, ''); // Remove any trailing slash
         // Assumes files are served from a '/storage/' route linked to storage/app/public
-        return `${baseUrl}/storage/${relativePath.replace(/^\//, '')}`;
+        return `${baseUrl}/${relativePath.replace(/^\//, '')}`;
     } catch (e) {
         console.error("Error constructing public URL:", e);
         return null; // Return null on error
