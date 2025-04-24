@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-
+use Spatie\Activitylog\Traits\LogsActivity;   // <--- MUST be imported
+use Spatie\Activitylog\LogOptions; 
 class Lot extends Model
 {
     use HasFactory;
+    use LogsActivity;
 
     /**
      * The table associated with the model.
@@ -70,4 +72,18 @@ class Lot extends Model
         // Assumes 'lot_id' foreign key on 'fichier_joint' table and 'id' primary key on 'lot' table
         return $this->hasMany(FichierJoint::class, 'lot_id', 'id');
     }
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+
+            // ---> THIS LINE IS WHERE YOU STORE THE ACTION DESCRIPTION <---
+            ->setDescriptionForEvent(fn(string $eventName) => $eventName)
+            // $eventName will automatically be 'created', 'updated', or 'deleted'
+
+            ->useLogName('lot');
+    }
+
 }

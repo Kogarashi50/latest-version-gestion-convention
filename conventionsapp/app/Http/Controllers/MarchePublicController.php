@@ -148,9 +148,9 @@ class MarchePublicController extends Controller
             'id_convention' => ['nullable', 'integer', Rule::exists('convention', 'id')],
             'ref_appelOffre' => ['nullable', 'integer', Rule::exists('appel_offre', 'id')], // Ensures the ID exists in appel_offre table
             'date_ouverture_plis' => 'nullable|date_format:Y-m-d',
-            'date_fin_ouverture' => 'nullable|date_format:Y-m-d|after_or_equal:date_ouverture_plis', // Logical check
-            'avancement_physique' => 'nullable|numeric|min:0|max:100', // Assuming percentage 0-100
-            'avancement_financier' => 'nullable|numeric|min:0|max:100', // Assuming percentage 0-100
+            'date_fin_ouverture' => 'nullable|date_format:Y-m-d', // Logical check
+            'avancement_physique' => 'nullable|numeric', // Assuming percentage 0-100
+            'avancement_financier' => 'nullable|numeric', // Assuming percentage 0-100
             'date_engagement_tresorerie' => 'nullable|date_format:Y-m-d', // CHECK Table and Column names
             'lots_data' => 'nullable|string', // Validate as string initially
             'lot_files' => 'nullable|array',
@@ -415,7 +415,7 @@ class MarchePublicController extends Controller
             'id_convention' => ['nullable', 'integer', Rule::exists('convention', 'id')],
             'ref_appelOffre' => ['nullable', 'integer', Rule::exists('appel_offre', 'id')],
             'date_ouverture_plis' => 'nullable|date_format:Y-m-d',
-            'date_fin_ouverture' => 'nullable|date_format:Y-m-d|after_or_equal:date_ouverture_plis',
+            'date_fin_ouverture' => 'nullable|date_format:Y-m-d',
             'avancement_physique' => 'nullable|numeric|min:0|max:100',
             'avancement_financier' => 'nullable|numeric|min:0|max:100',
             'date_engagement_tresorerie' => 'nullable|date_format:Y-m-d', // CHECK Table and Column names

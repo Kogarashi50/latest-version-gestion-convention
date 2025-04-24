@@ -21,7 +21,7 @@ const formatDate = (dateString) => {
             return dateString; // Return original if format is unexpected
         }
         // Use UTC to avoid timezone issues if dates are stored as date only
-        return new Date(datePart + 'T00:00:00Z').toLocaleDateString('fr-CA'); // YYYY-MM-DD
+        return new Date(datePart).toLocaleDateString('fr-CA'); // YYYY-MM-DD
     } catch (e) {
         console.error("Date format error:", dateString, e);
         return dateString;
@@ -43,11 +43,11 @@ const ContratDroitCommunPage = () => {
 
     // --- Column Definitions ---
     const contratColumns = useMemo(() => [
-        { accessorKey: 'numero_contrat', header: 'N° Contrat', size: 150, meta: { align: 'left', enableGlobalFilter: true } },
+        { accessorKey: 'numero_contrat', header: 'N° Contrat', size: 130, meta: { align: 'left', enableGlobalFilter: true } },
         {
-            accessorKey: 'objet', header: 'Objet', size: 180,
+            accessorKey: 'objet', header: 'Objet', size: 400,
             meta: { align: 'left', enableGlobalFilter: true },
-            cell: info => <div className="text-truncate" style={{ maxWidth: '180px' }} title={info.getValue()}>{info.getValue()}</div>,
+            cell: info => <div className="text-truncate" style={{ maxWidth: '400px' }} title={info.getValue()}>{info.getValue()}</div>,
         },
         {
             accessorKey: 'fournisseur_nom', header: 'Fournisseur', size: 180,
@@ -55,7 +55,7 @@ const ContratDroitCommunPage = () => {
             cell: info => <div className="text-truncate" style={{ maxWidth: '180px' }} title={info.getValue()}>{info.getValue()}</div>,
         },
         {
-            accessorKey: 'type_contrat', header: 'Type', size: 100, filterFn: 'equalsString', // Add filterFn if needed
+            accessorKey: 'type_contrat', header: 'Type', size: 170, filterFn: 'equalsString', // Add filterFn if needed
             meta: { align: 'center', enableGlobalFilter: true },
         },
         {
@@ -64,7 +64,7 @@ const ContratDroitCommunPage = () => {
             meta: { align: 'right', enableGlobalFilter: false }
         },
         {
-            accessorKey: 'date_signature', header: 'D. Signature', size: 120,
+            accessorKey: 'date_signature', header: 'Date Signature', size: 150,
             cell: info => formatDate(info.getValue()),
             meta: { align: 'center', enableGlobalFilter: false }
         },

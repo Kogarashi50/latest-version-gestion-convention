@@ -53,16 +53,20 @@ Route::get('/convparts/options', [ConvPartController::class, 'getOptions'])->nam
 
 // --- Protected Routes (Require Sanctum Authentication & Permissions) ---
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/appel-offres', [AppelOffreController::class, 'index']);
-    // ->middleware('permission:view appel_offres');
-    Route::post('/appel-offres', [AppelOffreController::class, 'store']);
-    // ->middleware('permission:create appel_offres');
-    Route::get('/appel-offres/{appel_offre}', [AppelOffreController::class, 'show']);
-    // ->middleware('permission:view appel_offres'); // Parameter name 'appel_offre' matches model binding convention
-    Route::put('/appel-offres/{appel_offre}', [AppelOffreController::class, 'update']);
-    // ->middleware('permission:update appel_offres');
-    Route::delete('/appel-offres/{appel_offre}', [AppelOffreController::class, 'destroy']);
-    // ->middleware('permission:delete appel_offres');
+    Route::get('/appel-offres', [AppelOffreController::class, 'index'])
+    ->middleware('permission:view appeloffres'); // Permission to view the list
+
+Route::post('/appel-offres', [AppelOffreController::class, 'store'])
+    ->middleware('permission:create appeloffres'); // Permission to create
+
+Route::get('/appel-offres/{appel_offre}', [AppelOffreController::class, 'show'])
+    ->middleware('permission:view appeloffre details'); // Permission to view specific details (using the more specific permission)
+
+Route::put('/appel-offres/{appel_offre}', [AppelOffreController::class, 'update'])
+    ->middleware('permission:update appeloffres'); // Permission to update
+
+Route::delete('/appel-offres/{appel_offre}', [AppelOffreController::class, 'destroy'])
+    ->middleware('permission:delete appeloffres');
     // --- Auth Related ---
     Route::post('/logout', [LoginController::class, 'logout'])->name('api.logout');
     Route::get('/user', function (Request $request) {

@@ -4,13 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Spatie\Activitylog\Traits\LogsActivity;   // <--- MUST be imported
+use Spatie\Activitylog\LogOptions;  
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo; // Import BelongsTo
 
 class MarchePublic extends Model
 {
     use HasFactory;
-
+    use LogsActivity;
     /**
      * The table associated with the model.
      *
@@ -109,6 +111,19 @@ class MarchePublic extends Model
         // Assumes 'marche_id' foreign key on 'fichier_joint' table and 'id' primary key on 'marche_public'
         return $this->hasMany(FichierJoint::class, 'marche_id', 'id')
                     ->whereNull('lot_id'); // Filter for files where lot_id IS NULL
+    }
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+
+            // ---> THIS LINE IS WHERE YOU STORE THE ACTION DESCRIPTION <---
+            ->setDescriptionForEvent(fn(string $eventName) => $eventName)
+            // $eventName will automatically be 'created', 'updated', or 'deleted'
+
+            ->useLogName('marches_publics');
     }
 
      /**

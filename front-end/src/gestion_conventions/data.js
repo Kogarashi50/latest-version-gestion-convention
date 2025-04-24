@@ -4,15 +4,14 @@ import {
   faProjectDiagram, faSitemap, faFileContract, faHandshake, faShapes,
   faHelmetSafety, faCity, faClipboardCheck, faMap, faUsersCog, faTasks,
   faFileInvoiceDollar, faChevronDown, faFileSignature, faFileAlt, faTachometerAlt,
-  faUserTag, faScroll,faGavel // Added faScroll icon for Ordre de Service
+  faUserTag, faScroll, faGavel // Added faGavel for Appel d'Offre
 } from "@fortawesome/free-solid-svg-icons";
 
 // --- Permission Constants ---
-// Match these exactly with your backend permission names
+// Match these exactly with your backend permission names defined in the seeder
 const PERMISSIONS = {
     VIEW_DASHBOARD: 'view dashboard',
     VIEW_CONVENTIONS: 'view conventions',
-    // MANAGE_CONVENTIONS: 'manage conventions', // Example: Add if you have a single manage permission
     CREATE_CONVENTIONS: 'create conventions',
     UPDATE_CONVENTIONS: 'update conventions',
     DELETE_CONVENTIONS: 'delete conventions',
@@ -23,11 +22,15 @@ const PERMISSIONS = {
     UPDATE_PARTENAIRES: 'update partenaires',
     DELETE_PARTENAIRES: 'delete partenaires',
     VIEW_PARTENAIRE_DETAILS: 'view partenaire details',
-    VIEW_PARTENAIRE_SUMMARY: 'view partenaire summary', // Added from seeder
-    // VIEW_APPEL_OFFRES: 'view appel_offres',
-    // CREATE_APPEL_OFFRES: 'create appel_offres',
-    // UPDATE_APPEL_OFFRES: 'update appel_offres',
-    // DELETE_APPEL_OFFRES: 'delete appel_offres',
+    VIEW_PARTENAIRE_SUMMARY: 'view partenaire summary',
+
+    // --- Appel Offre Permissions (Corrected Names & Added Details) ---
+    VIEW_APPELOFFRES: 'view appeloffres',           // Corrected: No underscore
+    CREATE_APPELOFFRES: 'create appeloffres',         // Corrected: No underscore
+    UPDATE_APPELOFFRES: 'update appeloffres',         // Corrected: No underscore
+    DELETE_APPELOFFRES: 'delete appeloffres',         // Corrected: No underscore
+    VIEW_APPELOFFRE_DETAILS: 'view appeloffre details', // Added this permission
+    // -------------------------------------------------------------
 
     VIEW_CHANTIERS: 'view chantiers', CREATE_CHANTIERS: 'create chantiers', UPDATE_CHANTIERS: 'update chantiers', DELETE_CHANTIERS: 'delete chantiers',
     VIEW_PROGRAMMES: 'view programmes', CREATE_PROGRAMMES: 'create programmes', UPDATE_PROGRAMMES: 'update programmes', DELETE_PROGRAMMES: 'delete programmes',
@@ -42,7 +45,6 @@ const PERMISSIONS = {
     VIEW_CONTRAT_DROIT_COMMUN: 'view contrat_droit_commun', CREATE_CONTRAT_DROIT_COMMUN: 'create contrat_droit_commun', UPDATE_CONTRAT_DROIT_COMMUN: 'update contrat_droit_commun', DELETE_CONTRAT_DROIT_COMMUN: 'delete contrat_droit_commun',
     DOWNLOAD_FICHIERS: 'download fichiers',
 
-    // --- Added based on latest seeder ---
     VIEW_ORDRES_SERVICE: 'view ordres_service',
     CREATE_ORDRES_SERVICE: 'create ordres_service',
     UPDATE_ORDRES_SERVICE: 'update ordres_service',
@@ -69,7 +71,6 @@ const PERMISSIONS = {
     DELETE_AVENANTS: 'delete avenants',
 
     DOWNLOAD_REPORT: 'download report',
-    // --- End Added ---
 
     // --- Admin ---
     MANAGE_USERS: 'manage users',
@@ -89,43 +90,26 @@ const menuItems = [
           </span>
       ),
       path: "/", // Path to dashboard or home
-      // requiredPermission: PERMISSIONS.VIEW_DASHBOARD // Keep dashboard always visible or link to its perm
   },
-
-  // --- Dashboard Link --- (COMMENTED OUT as requested)
-  /*
-   {
-      id: 999, // Unique ID
-      icon: faTachometerAlt,
-      label: "Dashboard",
-      path: "/", // Path to dashboard
-      type: 'item',
-      requiredPermission: PERMISSIONS.VIEW_DASHBOARD // Permission to view the dashboard link
-   },
-  */
-
 
   // --- Section Heading: GESTION DES CONVENTIONS ---
   { id: 100, type: 'heading', label: "GESTION DES CONVENTIONS", path: '#' },
   { id: 2, icon: faFileContract, label: "Conventions", path: "/convention", hasSubtitles: true, requiredPermission: PERMISSIONS.VIEW_CONVENTIONS },
-  { id: 15, icon: faFileAlt, label: "Avenants", path: "/avenants", type: 'subtitle', parentId: 2, requiredPermission: PERMISSIONS.VIEW_AVENANTS }, // Added permission
-  { id: 16, icon: faFileInvoiceDollar, label: "Versements (Conv.)", path: "/versements", type: 'subtitle', parentId: 2, requiredPermission: PERMISSIONS.VIEW_VERSEMENTS_CP }, // Updated path/permission if applicable
+  { id: 15, icon: faFileAlt, label: "Avenants", path: "/avenants", type: 'subtitle', parentId: 2, requiredPermission: PERMISSIONS.VIEW_AVENANTS },
+  { id: 16, icon: faFileInvoiceDollar, label: "Versements (Conv.)", path: "/versements", type: 'subtitle', parentId: 2, requiredPermission: PERMISSIONS.VIEW_VERSEMENTS_CP },
   { id: 3, icon: faHandshake, label: "Partenaires", path: "/partenaire", type: 'item', requiredPermission: PERMISSIONS.VIEW_PARTENAIRES },
   { id: 4, icon: faHelmetSafety, label: "Chantiers", path: "/chantier", type: 'item', requiredPermission: PERMISSIONS.VIEW_CHANTIERS },
   { id: 5, icon: faTasks, label: "Programmes", path: "/programme", type: 'item', requiredPermission: PERMISSIONS.VIEW_PROGRAMMES },
   { id: 6, icon: faShapes, label: "Domaines", path: "/domaine", type: 'item', requiredPermission: PERMISSIONS.VIEW_DOMAINES },
-  { id: 7, icon: faProjectDiagram, label: "Projets", path: "/projet", hasSubtitles: true, requiredPermission: PERMISSIONS.VIEW_PROJETS }, // Added hasSubtitles
-  // { id: 18, icon: faFileSignature, label: "Engagements Fin.", path: "/engagements", type: 'subtitle', parentId: 7, requiredPermission: PERMISSIONS.VIEW_ENGAGEMENTS_FINANCIERS },
-  { id: 19, icon: faFileInvoiceDollar, label: "Versements (Proj.)", path: "/versementpp", type: 'subtitle', parentId: 7, requiredPermission: PERMISSIONS.VIEW_VERSEMENTS_PP }, // Versement PP under Projets
-
-  { id: 8, icon: faSitemap, label: "Sous-Projets", path: "/sousprojet", type: 'item', requiredPermission: PERMISSIONS.VIEW_SOUSPROJETS }, // Keep as separate item? Or under Projets?
-
+  { id: 7, icon: faProjectDiagram, label: "Projets", path: "/projet", hasSubtitles: true, requiredPermission: PERMISSIONS.VIEW_PROJETS },
+  { id: 19, icon: faFileInvoiceDollar, label: "Versements (Proj.)", path: "/versementpp", type: 'subtitle', parentId: 7, requiredPermission: PERMISSIONS.VIEW_VERSEMENTS_PP },
+  { id: 8, icon: faSitemap, label: "Sous-Projets", path: "/sousprojet", type: 'item', requiredPermission: PERMISSIONS.VIEW_SOUSPROJETS },
 
   // --- Section Heading: LOCALISATION ---
   { id: 101, type: 'heading', label: "LOCALISATION", path: '#' },
   { id: 9, icon: faCity, label: "Communes", path: "/commune", type: 'item', requiredPermission: PERMISSIONS.VIEW_COMMUNES },
   { id: 13, icon: faMap, label: "Provinces", path: "/province", type: 'item', requiredPermission: PERMISSIONS.VIEW_PROVINCES },
-  
+
   // --- Section Heading: MARCHÉS & CONTRATS ---
   { id: 102, type: 'heading', label: "MARCHÉS & CONTRATS", path: '#' },
   {
@@ -134,12 +118,11 @@ const menuItems = [
     label: "Appels d'Offre",
     path: "/appel-offres", // Matches frontend route
     type: 'item', // Standard item
-    // requiredPermission: PERMISSIONS.VIEW_APPEL_OFFRES // Permission to view the menu item
-},
+    requiredPermission: PERMISSIONS.VIEW_APPELOFFRES // Permission to view the menu item (Corrected Constant)
+  },
   { id: 10, icon: faClipboardCheck, label: "Marchés", path: "/marche", hasSubtitles: true, requiredPermission: PERMISSIONS.VIEW_MARCHES },
-  { id: 11, icon: faFileInvoiceDollar, label: "Bon de Commande", path: "/marches/bonCommandes", hasSubtitles: false, requiredPermission: PERMISSIONS.VIEW_BON_COMMANDE },
-  { id: 12, icon: faFileSignature, label: "Contrat Droit Commun", path: "/marches/contratsDroitCommun", hasSubtitles: false, requiredPermission: PERMISSIONS.VIEW_CONTRAT_DROIT_COMMUN },
-  
+  { id: 11, icon: faFileInvoiceDollar, label: "Bon de Commande", path: "/marches/bonCommandes",  requiredPermission: PERMISSIONS.VIEW_BON_COMMANDE,hasSubtitles: false, }, // Made subtitle of Marchés
+  { id: 12, icon: faFileSignature, label: "Contrat Droit Commun", path: "/marches/contratsDroitCommun", requiredPermission: PERMISSIONS.VIEW_CONTRAT_DROIT_COMMUN ,hasSubtitles: false,}, // Made subtitle of Marchés
   {
     id: 20, // Ensure unique ID
     label: "Ordre de Service",

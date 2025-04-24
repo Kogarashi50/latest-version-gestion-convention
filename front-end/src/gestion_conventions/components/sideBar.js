@@ -173,7 +173,7 @@ const Sidebar = ({ currentUser }) => {
     const renderMenuItem = (item) => {
         // Keep existing logic for headings, items, subtitles, brand, etc.
         if (!item || typeof item.id === 'undefined') return null;
-        if (item.type === 'heading') { if (isCollapsed) return null; return ( <li key={item.id} className="sidebar-section-heading" aria-hidden="true"><div className="sidebar-hr"><hr /></div><span style={{ paddingLeft:'25px'}}>{item.label}</span></li> ); }
+        if (item.type === 'heading') { if (isCollapsed) return null; return ( <li key={item.id} className="sidebar-section-heading" aria-hidden="true"><div className="sidebar-hr "><hr /></div><span style={{ paddingLeft:'25px'}}>{item.label}</span></li> ); }
         const titleLabel = getItemLabel(item.label);
         const isActive = activeItemId === item.id && item.id !== EXCLUDED_ITEM_ID;
         const isSubtitle = item.type === 'subtitle';

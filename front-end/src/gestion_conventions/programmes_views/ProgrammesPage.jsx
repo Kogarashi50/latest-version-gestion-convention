@@ -20,10 +20,10 @@ const ProgrammesPage = () => {
         {
             accessorKey: 'Description', // Matches backend model/validation
             header: 'Description',
-            cell: info => <div className="text-truncate" style={{ mixWidth:'300px',maxWidth: '500px', width:'400px' }} title={info.getValue()}>{info.getValue() || '-'}</div>,
+            cell: info => <div className="text-truncate" style={{ minWidth:'350px',maxWidth: '500px', width:'450px' }} title={info.getValue()}>{info.getValue() || '-'}</div>,
             maxSize: 500,
-            size:400,
-            minSize:300,
+            size:450,
+            minSize:350,
             meta: { enableGlobalFilter: true }
         },
         {
@@ -33,11 +33,11 @@ const ProgrammesPage = () => {
             // Access nested data: programme.chantier.description
             // Fallback to id_chantier (which is Code_Chantier) if relation not loaded
             accessorFn: row => row.chantier?.Description || row.Id_Chantier || '-',
-            cell: info => <div className="text-truncate" style={{ mixWidth:'300px',maxWidth: '500px', width:'400px' }} title={info.getValue()}>{info.getValue()}</div>,
+            cell: info => <div className="text-truncate" style={{ minWidth:'350px',maxWidth: '500px', width:'450px' }} title={info.getValue()}>{info.getValue()}</div>,
             meta: { enableGlobalFilter: true },
             maxSize: 500,
-            size:400,
-            minSize:300,
+            size:450,
+            minSize:350,
             // Allow searching by Chantier description
         },
         {

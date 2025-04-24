@@ -12,11 +12,13 @@ use App\Models\Partenaire; // Import Partenaire
 use App\Models\Avenant;
 use App\Models\Projet;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
+use Spatie\Activitylog\Traits\LogsActivity;   // <--- MUST be imported
+use Spatie\Activitylog\LogOptions; 
 class Convention extends Model
 {
     // Add HasFactory trait for better testing/seeding capabilities
     use HasFactory;
+    use LogsActivity;
 
     protected $table = 'convention';
 
@@ -122,5 +124,17 @@ class Convention extends Model
         // id is the primary key in the conventions table
         return $this->hasMany(Avenant::class, 'convention_id', 'id');
     }
-
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+    
+            // ---> THIS LINE IS WHERE YOU STORE THE ACTION DESCRIPTION <---
+            ->setDescriptionForEvent(fn(string $eventName) => $eventName)
+            // $eventName will automatically be 'created', 'updated', or 'deleted'
+    
+            ->useLogName('convention');
+    }
 }

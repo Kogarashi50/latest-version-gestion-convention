@@ -283,7 +283,7 @@ const ConventionsPage = () => {
         },
         {
             accessorKey: 'Cout_Global',
-            size: 135, minSize: 100, maxSize: 170  ,
+            size: 150, minSize: 120, maxSize: 180  ,
 
             header: 'Coût Global',
             cell: info => info.getValue() ? parseFloat(info.getValue()).toLocaleString('fr-MA', { style: 'currency', currency: 'MAD', minimumFractionDigits: 0 }) : '0',

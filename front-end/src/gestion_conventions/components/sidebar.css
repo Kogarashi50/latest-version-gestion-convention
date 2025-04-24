@@ -11,7 +11,7 @@
 .sidebar { scrollbar-width: none; -ms-overflow-style: none; }
 
 /* Wrapper */
-.sidebar .sidebar-menu-list { list-style: none; padding: 0; margin: 0; position: relative; z-index: 5; }
+.sidebar .sidebar-menu-list { list-style: none;padding:0px ;  padding-block-end: 40px;margin: 0; position: relative; z-index: 5; }
 
 /* List items */
 .sidebar li { list-style-type: none; position: relative; }
@@ -24,8 +24,8 @@
 .sidebar li a .fa-fw, .sidebar li a .svg-inline--fa { margin-right: 8px; color: rgba(255, 255, 255, 0.7); min-width: 1.25em; transition: margin 0.3s ease-in-out, font-size 0.3s ease-in-out, color 0.3s; flex-shrink: 0; text-align: center; position: relative; z-index: 11; }
 
 /* HR Styling */
-.sidebar-hr { padding-inline: 25px; padding-top: 5px; padding-bottom: 0px; }
-.sidebar-hr hr { border: none; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.sidebar-hr { padding-inline: 25px; padding-bottom: 0px;  }
+.sidebar-hr hr { border: none; border-top: 1px solid rgba(255, 255, 255, 0.507); }
 
 /* Label Span Styles */
 .sidebar .sidebar-item-label { opacity: 1; visibility: visible; transition: opacity 0.2s ease-in-out 0.1s, visibility 0.2s ease-in-out 0.1s; flex-grow: 1; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 11; }
@@ -117,7 +117,7 @@
 /* --- Rest of CSS remains the same --- */
 
 /* Heading */
-.sidebar .sidebar-section-heading { padding: 7px 0px 3px 0px; font-size: 11px; font-weight: bold; color: rgba(130, 130, 130, 0.865); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 10px; margin-bottom: 0px; cursor: default; list-style: none; white-space: nowrap; overflow: hidden; opacity: 1; visibility: visible; transition: opacity 0.2s ease-in-out 0.1s, visibility 0.2s ease-in-out 0.1s, padding 0.3s ease-in-out; }
+.sidebar .sidebar-section-heading { padding: 0px 0px 3px 0px; font-size: 11px; font-weight: bold; color: rgba(130, 130, 130, 0.865); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0px; cursor: default; list-style: none; white-space: nowrap; overflow: hidden; opacity: 1; visibility: visible; transition: opacity 0.2s ease-in-out 0.1s, visibility 0.2s ease-in-out 0.1s, padding 0.3s ease-in-out; }
 .sidebar .sidebar-section-heading span { display: block; }
 
 /* Brand/Logo */

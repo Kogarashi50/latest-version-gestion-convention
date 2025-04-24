@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo; // Good practice to import
 use Illuminate\Database\Eloquent\Relations\HasMany;   // Import HasMany
-
+use Spatie\Activitylog\Traits\LogsActivity;   // <--- MUST be imported
+use Spatie\Activitylog\LogOptions; 
 class Projet extends Model
 {
+    use LogsActivity;
+
     /**
      * The table associated with the model.
      *
@@ -130,5 +133,18 @@ class Projet extends Model
         // Foreign key in 'engagements_financiers' table ('projet_id')
         // Local key (primary key) in 'projet' table ('ID_Projet')
         return $this->hasMany(EngagementFinancier::class, 'projet_id', 'ID_Projet');
+    }
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+
+            // ---> THIS LINE IS WHERE YOU STORE THE ACTION DESCRIPTION <---
+            ->setDescriptionForEvent(fn(string $eventName) => $eventName)
+            // $eventName will automatically be 'created', 'updated', or 'deleted'
+
+            ->useLogName('projet');
     }
 }

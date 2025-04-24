@@ -5,7 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
+use Spatie\Activitylog\Traits\LogsActivity;   // <--- MUST be imported
+use Spatie\Activitylog\LogOptions; 
 /**
  * Represents a single payment (versement) made against a financial commitment.
  *
@@ -14,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Versement extends Model
 {
     use HasFactory; // Optional: if you plan to use factories
+    use LogsActivity;
 
     /**
      * The table associated with the model.
@@ -91,5 +93,18 @@ class Versement extends Model
         // Foreign key on 'versements' table ('engagement_id')
         // Owner key on 'engagements_financiers' table ('id') - Laravel default
         return $this->belongsTo(EngagementFinancier::class, 'engagement_id');
+    }
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+
+            // ---> THIS LINE IS WHERE YOU STORE THE ACTION DESCRIPTION <---
+            ->setDescriptionForEvent(fn(string $eventName) => $eventName)
+            // $eventName will automatically be 'created', 'updated', or 'deleted'
+
+            ->useLogName('versementpp');
     }
 }

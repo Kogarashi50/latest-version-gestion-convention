@@ -10,11 +10,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Casts\Attribute; // <-- Import Attribute
 use Spatie\Permission\Traits\HasRoles; // <-- If using Spatie Permissions
-
+use Spatie\Activitylog\Traits\LogsActivity;   // <--- MUST be imported
+use Spatie\Activitylog\LogOptions; 
 class User extends Authenticatable
 {
     // Apply the necessary traits
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles; // Added HasRoles
+    use LogsActivity;
 
     /**
      * The attributes that are mass assignable.
@@ -82,6 +84,19 @@ class User extends Authenticatable
                             : $this->email; // Fallback to email if no fonctionnaire
             }
         );
+    }
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+
+            // ---> THIS LINE IS WHERE YOU STORE THE ACTION DESCRIPTION <---
+            ->setDescriptionForEvent(fn(string $eventName) => $eventName)
+            // $eventName will automatically be 'created', 'updated', or 'deleted'
+
+            ->useLogName('utilisateur');
     }
 
     /**

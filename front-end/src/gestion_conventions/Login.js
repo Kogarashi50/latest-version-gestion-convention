@@ -2,132 +2,146 @@
 import axios from 'axios';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Login.css'
+import './Login.css'; // Make sure this path points to your CSS file with .loginZone, .logoZone, .formZone, .input, .submit etc.
 
-// *** CHANGE: Pass received user data via onLogin ***
+// This component receives an 'onLogin' function as a prop
+// It's responsible for updating the parent component's state (e.g., in App.js or AuthContext)
 export default function Login({ onLogin }) {
-    // *** CHANGE: State for email ***
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const navigate = useNavigate();
+    const [email, setEmail] = useState(''); // State for the email input
+    const [password, setPassword] = useState(''); // State for the password input
+    const [error, setError] = useState(null); // State to hold login error messages
+    const [isLoading, setIsLoading] = useState(false); // State to track if login is in progress
+    const navigate = useNavigate(); // Hook for programmatic navigation
 
+    // Function to handle form submission
     async function validateForm(e) {
-        e.preventDefault();
-        setError(null);
-        setIsLoading(true);
+        e.preventDefault(); // Prevent default browser form submission
+        setError(null); // Clear any previous errors
+        setIsLoading(true); // Set loading state to true
 
-        
         try {
-            // *** CHANGE: Send email instead of username ***
+            // Send login request to the backend API endpoint '/login'
             const response = await axios.post('/login', {
-                email: email,
-                password: password,
+                email: email, // Send the email from state
+                password: password, // Send the password from state
             });
 
-            // 3. Handle SUCCESS
+            // --- Login Successful ---
             const receivedToken = response.data.token;
-            const receivedUserData = response.data.user; // User object (id, email, status, etc.)
+            const receivedUserData = response.data.user; // Expecting user data with roles/permissions
 
-            // *** CHANGE: Simplified onLogin call - pass token and user data ***
+            // Check if we received the necessary data and the onLogin prop is a valid function
             if (receivedToken && receivedUserData && typeof onLogin === 'function') {
-                onLogin(receivedToken, receivedUserData); // Pass both
-                navigate('/'); // Navigate AFTER successful login processing in parent
+                // Call the onLogin function passed from the parent component
+                onLogin(receivedToken, receivedUserData);
+
+                // Navigate to the main application page ('/') AFTER processing login in the parent
+                navigate('/');
             } else {
-                 console.error("Login response missing token or user data.");
-                 setError("Erreur de connexion: Réponse invalide du serveur.");
-                 // Manually clear potentially problematic local storage if needed
+                 console.error("Login response missing token or user data, or onLogin is not a function.");
+                 setError("Erreur de connexion: Réponse invalide du serveur ou problème interne.");
+                 // Optionally clear potentially bad local storage data
                  localStorage.removeItem('authToken');
                  localStorage.removeItem('user');
                  localStorage.setItem('isLoggedIn', 'false');
             }
 
         } catch (err) {
-            // --- ERROR HANDLING ---
+            // --- Error Handling (same logic as before) ---
             let errorMessage = 'Une erreur inattendue est survenue. Veuillez réessayer.';
+
             if (err.response) {
-                console.error("Login Error Response:", err.response);
+                console.error("Login Error Response:", err.response.status, err.response.data);
                 const status = err.response.status;
                 const data = err.response.data;
 
-                // *** CHANGE: Handle validation errors potentially for 'email' field ***
                  if (status === 422 && data && data.errors) {
-                    // Check for email or password errors specifically
                     if (data.errors.email) {
                          errorMessage = data.errors.email[0];
                     } else if (data.errors.password) {
-                         errorMessage = data.errors.password[0]; // Likely "credentials incorrect"
+                         errorMessage = data.errors.password[0];
                     } else {
-                        // Generic fallback for other validation errors
                         const firstErrorKey = Object.keys(data.errors)[0];
-                        errorMessage = data.errors[firstErrorKey][0];
+                        errorMessage = data.errors[firstErrorKey] ? data.errors[firstErrorKey][0] : 'Erreur de validation.';
                     }
-                } else if (status === 403 && data?.message) { // Handle specific forbidden message (e.g., inactive user)
+                } else if (status === 403 && data?.message) {
                     errorMessage = data.message;
-                } else if (status === 401 && data?.message) { // Generic unauthorized
+                } else if (data?.message) {
                      errorMessage = data.message;
                 } else {
-                    errorMessage = data?.message || `Erreur serveur (${status}).`;
+                    errorMessage = `Erreur serveur (${status}).`;
                 }
             } else if (err.request) {
-                errorMessage = "Aucune réponse du serveur. Vérifiez votre connexion.";
+                console.error("Login Error: No response received", err.request);
+                errorMessage = "Aucune réponse du serveur. Vérifiez votre connexion internet.";
             } else {
-                errorMessage = err.message;
+                console.error('Login Error:', err.message);
+                errorMessage = `Erreur lors de la préparation de la requête: ${err.message}`;
             }
             setError(errorMessage);
-            // --- END ERROR HANDLING ---
+            // --- END Error Handling ---
 
         } finally {
-            setIsLoading(false);
+            setIsLoading(false); // Set loading state back to false
         }
     }
 
+    // --- JSX using your original structure and classes ---
     return (
+        // Main container using your original classes for layout
         <div className="container d-flex justify-content-center align-items-center w-100 min-vh-100 ">
-            <div className="loginZone d-flex justify-content-end w-75 m-5">
-                <div className="d-flex logoZone flex-column justify-content-center p-5 align-items-center">
-                    <h1 className='text-center'>GICOPMA<small className='text-light' style={{display:'flex',fontSize:'14px',padding:'5px'}}> GESTION INTEGREE DES CONVENTIONS, PROJETS ET MARCHES</small></h1>
-                    {/* Added alt attribute for accessibility */}
-                    <img src="./logo2.png" width='230px' alt="Logo CRO"/>
+            <div className="loginZone d-flex justify-content-end w-75 m-5"> {/* Your main login area container */}
+
+                {/* Left side with Logo and Title */}
+                <div className="d-flex logoZone flex-column justify-content-center p-5 align-items-center"> {/* Your logo area */}
+                    <h1 className='text-center'>GICOPMA
+                        <small className='text-light' style={{display:'flex', fontSize:'14px', padding:'5px'}}>
+                            GESTION INTEGREE DES CONVENTIONS, PROJETS ET MARCHES
+                        </small>
+                    </h1>
+                    {/* Ensure the image path is correct */}
+                    <img src="/logo2.png" width='230px' alt="Logo CRO"/>
                 </div>
-                <form className="formZone h-100 flex-column d-flex justify-content-center align-items-center " onSubmit={validateForm}>
-                    <div className=" container d-flex justify-content-center flex-column align-items-center ">
+
+                {/* Right side with the Form */}
+                <form className="formZone h-100 flex-column d-flex justify-content-center align-items-center " onSubmit={validateForm}> {/* Your form area */}
+                    <div className=" container d-flex justify-content-center flex-column align-items-center "> {/* Inner container for form elements */}
                         <h1>Connexion</h1>
 
-                        {/* *** CHANGE: Label and input for Email *** */}
+                        {/* Email Input using your 'label' and 'input' classes */}
                         <label className="label align-self-start">Email</label>
                         <input
-                            type="email" // Use email type for potential browser validation
-                            className="input"
+                            type="email" // Use email type
+                            className="input" // Your input class
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            disabled={isLoading}
-                            required // Add basic required validation
+                            disabled={isLoading} // Disable when loading
+                            required // Basic HTML validation
                          />
 
+                        {/* Password Input using your 'label' and 'input' classes */}
                         <label className="label align-self-start">Mot de passe</label>
                         <input
                             type="password"
-                            className="input "
+                            className="input" // Your input class
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            disabled={isLoading}
-                            required
+                            disabled={isLoading} // Disable when loading
+                            required // Basic HTML validation
                         />
 
-                        {/* Error Message Display */}
+                        {/* Error Message Display Area */}
                         {error && (
+                            // Simple div for error display, style as needed in Login.css
                             <div style={{ color: 'red', width: '100%', textAlign: 'center', fontSize: '11px', marginTop: '5px' }}>
                                 {error}
                             </div>
                         )}
-
                     </div>
-                    {/* ... (Remember me / Forgot password remains the same - implement functionality separately) ... */}
-                    {/* ... (Submit button remains the same) ... */}
+
+                    {/* Submit Button using your 'submit' class */}
                        <button className="submit" type="submit" disabled={isLoading}>
-                        {isLoading ? 'Connexion...' : 'Se connecter'}
+                        {isLoading ? 'Connexion...' : 'Se connecter'} {/* Change text when loading */}
                     </button>
                 </form>
             </div>

@@ -60,13 +60,13 @@ const getStatusColor = (statusValue) => {
 const BonDeCommandePage = () => {
     const bonDeCommandeColumns = useMemo(() => [
         {
-            accessorKey: 'numero_bc', header: 'Numéro', size: 150,
+            accessorKey: 'numero_bc', header: 'Numéro', size: 50,
             meta: { filterVariant: 'text', enableGlobalFilter: true }
         },
         {
-            accessorKey: 'objet', header: 'Objet', size: 250, // Increased size
+            accessorKey: 'objet', header: 'Objet', size: 270, // Increased size
              // Use standard text display, maybe with tooltip if needed via CSS/parent component
-             cell: info => <span title={info.getValue() || ''}>{info.getValue().length>25?displayData(info.getValue()).slice(0,25)+'...':displayData(info.getValue())}</span>,
+             cell: info => <span title={info.getValue() || ''}>{info.getValue().length>35?displayData(info.getValue()).slice(0,35)+'...':displayData(info.getValue())}</span>,
             meta: { filterVariant: 'text', enableGlobalFilter: true }
         },
         {
@@ -102,7 +102,7 @@ const BonDeCommandePage = () => {
             }
         },
         {
-            id: 'marche', header: 'Marché', size: 110,
+            id: 'marche', header: 'Marché', size: 130,
             // *** IMPORTANT: Use the CORRECT relationship name ('marche') from backend ***
             accessorFn: row => row.marche_public?.numero_marche || row.marche_public?.objet || '-',
             // Use standard text display

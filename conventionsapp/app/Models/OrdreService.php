@@ -5,12 +5,15 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\Activitylog\Traits\LogsActivity;   // <--- MUST be imported
+use Spatie\Activitylog\LogOptions;  
 // Use Storage facade if you plan to add URL accessors later
 // use Illuminate\Support\Facades\Storage;
 
 class OrdreService extends Model
 {
     use HasFactory;
+    use LogsActivity;
 
     /**
      * The table associated with the model.
@@ -105,6 +108,20 @@ class OrdreService extends Model
      * foreign key constraint in the database schema provided earlier.
      * User details would need to be fetched manually using the 'cree_par' ID.
      */
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+
+            // ---> THIS LINE IS WHERE YOU STORE THE ACTION DESCRIPTION <---
+            ->setDescriptionForEvent(fn(string $eventName) => $eventName)
+            // $eventName will automatically be 'created', 'updated', or 'deleted'
+
+            ->useLogName('ordre_service');
+    }
+
 
     //--------------------------------------------------------------------------
     // Accessors & Mutators (Optional Enhancements)

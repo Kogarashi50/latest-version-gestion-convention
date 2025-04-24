@@ -13,23 +13,23 @@ const ProvincesPage = () => {
         {
             accessorKey: 'Code', // Matches the backend field name
             header: 'Code',      // Display header
-            size: 150,           // Optional: Column width
+            size: 80,           // Optional: Column width
             meta: { enableGlobalFilter: true } // Allow searching this column
         },
         {
             accessorKey: 'Description',
             header: 'Description',
             // Optional: Custom cell render for truncation or styling
-            cell: info => <div className="text-truncate" style={{ maxWidth: '200px' }} title={info.getValue()}>{info.getValue() || '-'}</div>,
-            size: 200,
+            cell: info => <div className="text-truncate" style={{ maxWidth: '300px' }} title={info.getValue()}>{info.getValue() || '-'}</div>,
+            size: 300,
             meta: { enableGlobalFilter: true }
         },
         {
             accessorKey: 'Description_Arr',
             header: 'Description (Arabe)',
             // Optional: Custom cell render for RTL text
-            cell: info => <div className="text-truncate" style={{ maxWidth: '200px', direction: 'rtl', textAlign: 'right' }} title={info.getValue()}>{info.getValue() || '-'}</div>,
-            size: 200,
+            cell: info => <div className="text-truncate" style={{ maxWidth: '300px', direction: 'ltr' }} title={info.getValue()}>{info.getValue() || '-'}</div>,
+            size: 300,
             meta: { enableGlobalFilter: true } // Allow searching (adjust if needed)
         },
         {

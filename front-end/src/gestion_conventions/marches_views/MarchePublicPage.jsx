@@ -67,14 +67,14 @@ const MarchePublicPage = () => {
     const marcheColumns = useMemo(() => [
         { accessorKey: 'numero_marche', header: 'N° Marché', size: 130, meta: { align: 'left', enableGlobalFilter: true } },
         {
-            accessorKey: 'intitule', header: 'Intitulé Marché', size: 180,
+            accessorKey: 'intitule', header: 'Intitulé Marché', size: 220,
             meta: { align: 'left', enableGlobalFilter: true },
-            cell: info => <div className="text-truncate" style={{ maxWidth: '180px' }} title={info.getValue()}>{info.getValue()}</div>,
+            cell: info => <div className="text-truncate" style={{ maxWidth: '220px' }} title={info.getValue()}>{info.getValue()}</div>,
         },
         {
             id: 'appelOffreLIEE', // Unique column ID
             header: "Appel d'Offre", // Column header text
-            size: 150, // Adjust size as needed
+            size: 100, // Adjust size as needed
             accessorFn: row => {
                 console.log("Processing row for AO column:", row);
                 console.log("Accessing row.appelOffre:", row.appel_offre);
@@ -100,7 +100,7 @@ const MarchePublicPage = () => {
         {
             id: 'conventionLIEE', // Unique column ID
             header: 'Convention Liée',
-            size: 170,
+            size: 220,
             accessorFn: row => {
                  // *** VERIFY these names match the JSON response from the backend ***
                  // 1. Is the nested object key 'convention'?
@@ -116,7 +116,7 @@ const MarchePublicPage = () => {
             cell: info => {
                 const conventionTitle = info.getValue();
                 return conventionTitle
-                    ? <div className="text-truncate" style={{ maxWidth: '170px' }} title={conventionTitle}>
+                    ? <div className="text-truncate" style={{ maxWidth: '220px' }} title={conventionTitle}>
                           <FontAwesomeIcon icon={faLink} className="me-1 text-muted small" /> {conventionTitle}
                       </div>
                     : '-';
@@ -132,7 +132,7 @@ const MarchePublicPage = () => {
             meta: { align: 'center', enableGlobalFilter: true },
         },
         {
-            accessorKey: 'montant_attribue', header: 'Montant Attribué', size: 150,
+            accessorKey: 'montant_attribue', header: 'Montant Attribué', size: 140,
             cell: info => formatCurrency(info.getValue()),
             meta: { align: 'right', enableGlobalFilter: false }
         },

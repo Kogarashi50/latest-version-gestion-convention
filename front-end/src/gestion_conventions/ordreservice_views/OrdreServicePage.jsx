@@ -106,12 +106,12 @@ const OrdreServicePage = () => {
         {
             accessorKey: 'marche_public', // Access the nested object fetched via 'with()' in the controller
             header: 'Marché Public Lié',
-            size: 250, // Adjust size as needed
+            size: 200, // Adjust size as needed
             // Cell rendering function - expects marchePublic: { id, numero_marche, intitule }
             cell: info => {
                 const marche = info.getValue(); // marche will be the marchePublic object or null/undefined
                 return marche ? (
-                    <div className="text-truncate" style={{ maxWidth: '230px' }} title={`${marche.numero_marche} - ${marche.intitule}`}>
+                    <div className="text-truncate" style={{ maxWidth: '200px' }} title={`${marche.numero_marche} - ${marche.intitule}`}>
                         <FontAwesomeIcon icon={faFileContract} className="me-2 text-info small" />
                         {marche.numero_marche || 'N/A'} {/* Display numero_marche */}
                     </div>
@@ -134,7 +134,7 @@ const OrdreServicePage = () => {
         {
             accessorKey: 'type',
             header: 'Type',
-            size: 150,
+            size: 200,
             // Use a predefined filter function for exact string matching
             filterFn: 'equalsString', // 'equals' or 'equalsString' from react-table
             cell: info => {
@@ -151,13 +151,13 @@ const OrdreServicePage = () => {
         {
             accessorKey: 'numero',
             header: 'Numéro OS',
-            size: 180,
+            size: 200,
             meta: { align: 'left', enableGlobalFilter: true } // Allow searching by numero
         },
         {
             accessorKey: 'date_emission',
             header: 'Date Émission',
-            size: 120,
+            size: 200,
             cell: info => formatDate(info.getValue()), // Format date for display
             meta: { align: 'center', enableGlobalFilter: false } // Date search usually not needed globally
         },

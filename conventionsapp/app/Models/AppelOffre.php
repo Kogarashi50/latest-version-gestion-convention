@@ -5,7 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 // Need Casts\AsArrayObject or Casts\AsCollection for easier JSON handling
 use Illuminate\Database\Eloquent\Casts\AsArrayObject;
-
+use Spatie\Activitylog\Traits\LogsActivity;   // <--- MUST be imported
+use Spatie\Activitylog\LogOptions; 
 /**
  * App\Models\AppelOffre
  *
@@ -32,6 +33,8 @@ use Illuminate\Database\Eloquent\Casts\AsArrayObject;
  */
 class AppelOffre extends Model
 {
+    use LogsActivity;
+
     /**
      * The table associated with the model.
      *
@@ -91,6 +94,20 @@ class AppelOffre extends Model
         'lancement_portail' => 'boolean',
         'date_lancement_portail' => 'date:Y-m-d',
     ];
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logFillable()
+            ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
+    
+            // ---> THIS LINE IS WHERE YOU STORE THE ACTION DESCRIPTION <---
+            ->setDescriptionForEvent(fn(string $eventName) => $eventName)
+            // $eventName will automatically be 'created', 'updated', or 'deleted'
+    
+            ->useLogName('appel_offre');
+    }
+
 
     // --- Relationships ---
     // No province relationship needed as it's stored directly.

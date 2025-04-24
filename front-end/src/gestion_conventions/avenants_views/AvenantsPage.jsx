@@ -99,17 +99,17 @@ const AvenantsPage = () => {
             id: 'convention',
             header: 'Convention Parent',
             accessorFn: row => row.convention ? `${row.convention?.Code} - ${row.convention?.Intitule}` : `ID: ${row.convention_id}`,
-            cell: info => <div className="text-truncate" title={info.getValue()} style={{ maxWidth: '180px' }}>{info.getValue() || '-'}</div>,
-            size: 180,
+            cell: info => <div className="text-truncate" title={info.getValue()} style={{ maxWidth: '300px' }}>{info.getValue() || '-'}</div>,
+            size: 300,
             meta: { enableGlobalFilter: true }
         },
         {
-             accessorKey: 'numero_avenant', header: 'N° Avenant', size: 120,
+             accessorKey: 'numero_avenant', header: 'N° Avenant', size: 110,
              meta: { enableGlobalFilter: true }
         },
         {
-             accessorKey: 'objet', header: 'Objet', size: 160,
-             cell: info => <div className="text-truncate" title={info.getValue()} style={{ maxWidth: '160px' }}>{info.getValue()}</div>,
+             accessorKey: 'objet', header: 'Objet', size: 200,
+             cell: info => <div className="text-truncate" title={info.getValue()} style={{ width: '300px' }}>{info.getValue()}</div>,
              meta: { enableGlobalFilter: true }
          },
          {
@@ -123,7 +123,7 @@ const AvenantsPage = () => {
              meta: { enableGlobalFilter: true }
          },
         {
-             accessorKey: 'date_signature', header: 'D. Signature', size: 110,
+             accessorKey: 'date_signature', header: 'Date Signature', size: 140,
              cell: info => formatDate(info.getValue()),
              meta: { enableGlobalFilter: false }
          },

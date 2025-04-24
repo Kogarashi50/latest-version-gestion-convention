@@ -5,11 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo; // Import BelongsTo
-
+use Spatie\Activitylog\Traits\LogsActivity;   // <--- MUST be imported
+use Spatie\Activitylog\LogOptions; 
 use Illuminate\Database\Eloquent\Relations\HasMany; 
 class EngagementFinancier extends Model
 {
     use HasFactory; // Optional: if you plan to use factories
+    use LogsActivity;
 
     /**
      * The table associated with the model.
@@ -99,6 +101,19 @@ class EngagementFinancier extends Model
     // Foreign key in 'versements' table ('engagement_id')
     // Local key (primary key) in 'engagements_financiers' table ('id')
     return $this->hasMany(Versement::class, 'engagement_id', 'id');
+}
+public function getActivitylogOptions(): LogOptions
+{
+    return LogOptions::defaults()
+        ->logFillable()
+        ->logOnlyDirty()
+        ->dontSubmitEmptyLogs()
+
+        // ---> THIS LINE IS WHERE YOU STORE THE ACTION DESCRIPTION <---
+        ->setDescriptionForEvent(fn(string $eventName) => $eventName)
+        // $eventName will automatically be 'created', 'updated', or 'deleted'
+
+        ->useLogName('engagement_financier');
 }
 
 }

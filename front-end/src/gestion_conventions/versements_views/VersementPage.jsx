@@ -228,35 +228,35 @@ const VersementPage = () => {
                 const convention = info.row.original.conv_part?.convention;
                 if (!convention) return '-';
                 const displayText = `${convention.code || ''}${convention.intitule ? ' - ' + convention.intitule : ''}`;
-                return ( <div className="text-truncate" style={{ maxWidth: '170px' }} title={displayText}> <FontAwesomeIcon icon={faFileContract} className="me-2 text-primary opacity-75" /> {displayText || '-'} </div> );
+                return ( <div className="text-truncate" style={{ maxWidth: '300px' }} title={displayText}> <FontAwesomeIcon icon={faFileContract} className="me-2 text-primary opacity-75" /> {displayText || '-'} </div> );
             },
-            size: 200, meta: { enableGlobalFilter: true }
+            size: 300, meta: { enableGlobalFilter: true }
         },
         {
             id: 'partenaire_details', header: 'Partenaire', filterFn: 'includesString',
             accessorFn: row => row.conv_part?.partenaire?.Description || row.conv_part?.partenaire?.Description_Arr ,
             cell: info => {
                 const description = info.getValue();
-                return ( <div className="text-truncate" style={{ maxWidth: '170px' }} title={description}> {description ? (<><FontAwesomeIcon icon={faHandshake} className="me-2 text-success opacity-75" />{description}</> ) : ( '-' )} </div> );
+                return ( <div className="text-truncate" style={{ maxWidth: '300px' }} title={description}> {description ? (<><FontAwesomeIcon icon={faHandshake} className="me-2 text-success opacity-75" />{description}</> ) : ( '-' )} </div> );
              },
-            size: 170, meta: { enableGlobalFilter: true }
+            size: 300, meta: { enableGlobalFilter: true }
         },
         {
-            accessorKey: 'date_versement', header: 'D. Versement',
+            accessorKey: 'date_versement', header: 'Date Versement',
             cell: info => formatDate(info.getValue()),
-            size: 110, meta: { filterVariant: 'date-range', enableGlobalFilter: false },
+            size: 150, meta: { filterVariant: 'date-range', enableGlobalFilter: false },
             filterFn: 'dateRange'
         },
         {
             accessorKey: 'montant_verse', header: 'Montant Versé',
             cell: info => formatCurrency(info.getValue()),
-            size: 130, meta: { filterVariant: 'range', enableGlobalFilter: false },
+            size: 150, meta: { filterVariant: 'range', enableGlobalFilter: false },
             filterFn: 'amountRange'
         },
         {
             accessorKey: 'moyen_paiement', header: 'Moyen Paiem.',
             cell: info => info.getValue() || '-',
-            size: 120, meta: { filterVariant: 'select', filterOptions: PAIEMENT_METHODE_OPTIONS, enableGlobalFilter: true },
+            size: 140, meta: { filterVariant: 'select', filterOptions: PAIEMENT_METHODE_OPTIONS, enableGlobalFilter: true },
             filterFn: 'equalsString'
         },
         { accessorKey: 'reference_paiement', header: 'Référence', cell: info => <div className="text-truncate" style={{ maxWidth: '100px' }} title={info.getValue()}>{info.getValue() || '-'}</div>, size: 100, meta: { enableGlobalFilter: true } },

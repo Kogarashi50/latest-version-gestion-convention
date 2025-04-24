@@ -56,12 +56,12 @@ const VersementsPPPage = () => {
 
         // **Data from Versement Model**
         {
-            accessorKey: 'date_versement', header: 'Date Versement', size: 130, enableSorting: true,
+            accessorKey: 'date_versement', header: 'Date Versement', size: 150, enableSorting: true,
             cell: info => formatDateSimple(info.getValue()),
             meta: { filterVariant: 'date', enableGlobalFilter: false } // Date filter
         },
         {
-            accessorKey: 'montant_verse', header: 'Montant Versé', size: 150, enableSorting: true,
+            accessorKey: 'montant_verse', header: 'Montant Versé', size: 180, enableSorting: true,
             cell: info => formatCurrency(info.getValue()),
             meta: { filterVariant: 'range', enableGlobalFilter: true } // Range filter, include in global search
         },
@@ -70,8 +70,8 @@ const VersementsPPPage = () => {
             meta: { filterVariant: 'text', enableGlobalFilter: true } // Text filter
         },
         {
-            accessorKey: 'reference_paiement', header: 'Référence', size: 150,
-            cell: info => <div className="text-truncate" style={{ maxWidth: '140px' }} title={info.getValue()}>{info.getValue() || '-'}</div>,
+            accessorKey: 'reference_paiement', header: 'Référence', size: 130,
+            cell: info => <div className="text-truncate" style={{ maxWidth: '130px' }} title={info.getValue()}>{info.getValue() || '-'}</div>,
             meta: { filterVariant: 'text', enableGlobalFilter: true } // Text filter
         },
 
@@ -83,17 +83,17 @@ const VersementsPPPage = () => {
             meta: { filterVariant: 'text', enableGlobalFilter: true } // Text filter
         },
         {
-            id: 'projet_nom', header: 'Nom Projet', size: 180,
+            id: 'projet_nom', header: 'Nom Projet', size: 310,
             accessorFn: row => row.engagement_financier?.projet?.Nom_Projet || '-',
-            cell: info => <div className="text-truncate" style={{ maxWidth: '180px' }} title={info.getValue()}>{info.getValue()}</div>,
+            cell: info => <div className="text-truncate" style={{ maxWidth: '310px' }} title={info.getValue()}>{info.getValue()}</div>,
             meta: { filterVariant: 'text', enableGlobalFilter: true } // Text filter
         },
 
         // **Data from Related EngagementFinancier -> Partenaire**
         {
-            id: 'partenaire_nom', header: 'Partenaire', size: 180,
+            id: 'partenaire_nom', header: 'Partenaire', size: 220,
             accessorFn: row => row.engagement_financier?.partenaire?.Description ||row.engagement_financier?.partenaire?.Description_Arr|| '-',
-            cell: info => <div className="text-truncate" style={{ maxWidth: '180px' }} title={info.getValue()}>{info.getValue()}</div>,
+            cell: info => <div className="text-truncate" style={{ maxWidth: '220px' }} title={info.getValue()}>{info.getValue()}</div>,
             meta: { filterVariant: 'text', enableGlobalFilter: true } // Text filter
         },
 
