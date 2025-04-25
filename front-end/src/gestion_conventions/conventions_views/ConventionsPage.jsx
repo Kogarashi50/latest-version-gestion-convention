@@ -244,10 +244,7 @@ const ConventionsPage = () => {
                 }
                 const partnerIDs = idString.split(';').map(id => id.trim()).filter(Boolean);
                 if (partnerIDs.length === 0) return <span className="text-muted small">-</span>;
-                const partnerNames = partnerIDs.map(id => {
-                    const option = allPartenairesOptions.find(opt => String(opt.value) === String(id));
-                    return option ? option.label : `ID ${id}`; // Fallback to ID if not found
-                }).filter(Boolean);
+               
 
               
 

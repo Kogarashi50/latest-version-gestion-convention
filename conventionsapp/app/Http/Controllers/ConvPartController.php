@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Validator; // Import Validator
 use Illuminate\Validation\ValidationException;
 use App\Models\Convention;
 use Illuminate\Http\JsonResponse;
+use App\Models\VersementCP; // <<<--- ADD this line to import the VersementCP model
 
 class ConvPartController extends Controller
 {
@@ -150,7 +151,7 @@ class ConvPartController extends Controller
         }
     }
 
-    public function lookupDetails(Request $request) // <<<--- NEW METHOD
+    public function lookupDetails(Request $request): JsonResponse // Added return type hint
     {
         Log::info("Looking up ConvPart details by Convention/Partenaire IDs...");
 
@@ -176,7 +177,8 @@ class ConvPartController extends Controller
             // Find the specific engagement record matching the pair
             $convPart = ConvPart::where('Id_Convention', $conventionId)
                             ->where('Id_Partenaire', $partenaireId)
-                            ->select(['Id_CP', 'Montant_Convenu']) // Select only needed fields
+                            // Select specific fields initially, but we need the object for the sum
+                            // ->select(['Id_CP', 'Montant_Convenu'])
                             ->first(); // Use first() as there should only be one
 
             if (!$convPart) {
@@ -185,10 +187,18 @@ class ConvPartController extends Controller
             }
 
             Log::info("Found ConvPart details: Id_CP={$convPart->Id_CP}");
-            // Return the found details (Id_CP and Montant_Convenu)
+
+            // *** <<< ADDED: Calculate total paid for this commitment >>> ***
+            $totalPaid = VersementCP::where('id_CP', $convPart->Id_CP)->sum('montant_verse');
+            Log::debug("Total paid calculated for Id_CP={$convPart->Id_CP}: {$totalPaid}");
+            // *** <<< END ADDED CALCULATION >>> ***
+
+
+            // Return the found details including the total paid amount
             return response()->json([
-                'id_cp' => $convPart->Id_CP, // Use snake_case for consistency? Or keep camelCase
-                'montant_convenu' => $convPart->Montant_Convenu,
+                'id_cp'            => $convPart->Id_CP,             // Frontend expects 'id_cp'
+                'montant_convenu'  => $convPart->Montant_Convenu,   // Frontend expects 'montant_convenu'
+                'total_deja_verse' => $totalPaid ?? 0.0,          // <<< ADDED: Frontend expects 'total_deja_verse'
             ], 200);
 
         } catch (\Exception $e) {

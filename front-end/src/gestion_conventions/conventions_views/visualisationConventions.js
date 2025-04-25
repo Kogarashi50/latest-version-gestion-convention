@@ -314,9 +314,9 @@ const ConventionVisualisation = ({ itemId, onClose, baseApiUrl }) => {
                                 Engagements des Partenaires
                             </Card.Title>
                         </Card.Header>
-                        <Card.Body className="pt-2">
+                        <Card.Body className="pt-2" >
                             {conventionData.partner_commitments && conventionData.partner_commitments.length > 0 ? (
-                                <div className="partner-list-container" style={{ maxHeight: '450px', overflowY: 'auto', paddingRight: '10px' }}>
+                                <div className="partner-list-container" style={{ maxHeight: '450px', overflowY: 'auto',overflowX:'hidden', paddingRight: '10px' }}>
                                     <ListGroup variant="flush">
                                         {conventionData.partner_commitments.map((p, index) => {
                                             const montantConvenu = parseFloat(p.Montant_Convenu) || 0;

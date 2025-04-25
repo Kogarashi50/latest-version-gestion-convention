@@ -265,10 +265,10 @@ const eventLIEE=(event)=>{
 
         modalContent = (
             <>
-                 <div className="mb-4 pb-3 border-bottom data-section">
+                 <div className="mb-4 pb-3 bg-white border-bottom data-section">
                      <h5 className="mb-3 section-title text-uppercase fw-bold text-secondary"> Informations Générales</h5>
                      <Row>
-                       <Col xs={12} md={12} lg={6} className="mb-3  m-3 data-point card shadow-sm p-3 border-0"> 
+                       <Col xs={12} md={12} lg={6} className="mb-3  bg-light m-3 data-point card shadow p-3 border-0"> 
                         {renderLogDetail("Date/Heure", logData.created_at, faClock, formatDate)}
                          
                              <div className='p-2'> <FontAwesomeIcon icon={causerName ? faUser : faCogs} className="me-2 text-muted fa-fw"/>
@@ -278,7 +278,7 @@ const eventLIEE=(event)=>{
                                  {causerInfo && <span className="text-muted ms-2">{causerInfo}</span>}
                              </span>
                           </Col>
-                         <Col xs={12} md={12} lg={5} className="mb-3  m-3 data-point card shadow-sm p-3 border-0">{renderLogDetail("Événement", logData.event, faTags, (event) => (<Badge bg="warning" text="dark" style={{fontSize:'13px'}} className="ms-1">{eventLIEE(event)}</Badge>))}
+                         <Col xs={12} md={12} lg={5} className="mb-3  bg-light  m-3 data-point card shadow p-3 border-0">{renderLogDetail("Événement", logData.event, faTags, (event) => (<Badge bg="warning" text="dark" style={{fontSize:'13px'}} className="ms-1">{eventLIEE(event)}</Badge>))}
                          {renderLogDetail("Log Name", logData.log_name, faTags, (logName) => (<Badge bg="dark" style={{fontSize:'13px'}} className="ms-1 ">{logName}</Badge>))}
                     </Col> </Row>
                  </div>
@@ -293,7 +293,7 @@ const eventLIEE=(event)=>{
                  disabled={!hasProperties} // Disable if no properties exist
                  className="d-flex justify-content-between align-items-center w-100 p-0 px-3 m-0 text-decoration-none section-title"
              >
-                <h5 className="mb-0 text-uppercase fw-bold text-dark">
+                <h5 className="mb-0 text-uppercase fw-bold text-secondary titledropdown">
                       Propriétés / Changements
                  </h5>
                  {/* Show chevron only if there are properties */}
@@ -323,22 +323,22 @@ const eventLIEE=(event)=>{
     }
 
     return (
-        <> {/* Using fragment as Modal is rendered by DynamicTable */}
-            <Modal.Header className='d-flex border-0 m-4 bg-white justify-content-between activityLog'>
-                <Modal.Title as="h4" className="fw-bold text-dark">
+        <div> {/* Using fragment as Modal is rendered by DynamicTable */}
+            <div className='d-flex border-bottom pb-3 m-4 bg-white justify-content-between activityLog'>
+                <h4 className="fw-bold text-dark">
                     Détails de l'Historique {itemId ? `(ID: ${itemId})` : ''}
-                </Modal.Title>
+                </h4>
                 <Button variant="warning" onClick={onClose} className="px-5 fw-bold py-1 rounded-pill shadow-sm">
                      Revenir a la liste
                 </Button>
-            </Modal.Header>
+            </div>
 
-            <Modal.Body className="px-4 py-4 bg-light">
+            <Modal.Body className="px-4 py-4 bg-white">
                 {modalContent}
             </Modal.Body>
 
            
-        </>
+        </div>
     );
 };
 

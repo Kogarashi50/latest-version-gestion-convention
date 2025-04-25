@@ -1,441 +1,721 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import PropTypes from 'prop-types';
+// src/pages/your_cp_folder/VersementForm.jsx (Adjust path as needed)
+
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+    faSpinner, faExclamationTriangle, faTimes, faCheckCircle, faInfoCircle,
+    faReceipt, faCalendarAlt, faProjectDiagram, faUsers, faStickyNote, faCreditCard, faEuroSign // Use consistent icons
+} from '@fortawesome/free-solid-svg-icons';
 import Select from 'react-select';
 import {
-    Modal, Button, Form, Row, Col, Spinner, Alert, InputGroup,
-    Card // Assuming you still want the Card wrapper
+    Form, Button, Row, Col, Alert, Spinner, Card, InputGroup, FormLabel, Stack,
+    FormSelect, Modal // Added Modal import for consistency
 } from 'react-bootstrap';
+import PropTypes from 'prop-types';
+
+// --- Styles & Classes --- (Keep consistent styles)
+// *** Full selectStyles definition included ***
+const selectStyles = {
+    control: (provided, state) => ({
+        ...provided,
+        backgroundColor: '#f8f9fa', // Light background
+        borderRadius: '1.5rem',     // Pill shape
+        border: state.isFocused ? '1px solid #86b7fe' : '1px solid #ced4da', // Standard Bootstrap focus/border
+        boxShadow: state.isFocused ? '0 0 0 0.25rem rgba(13, 110, 253, 0.25)' : 'none', // Bootstrap focus shadow
+        minHeight: '38px', // Standard Bootstrap input height
+        fontSize: '0.875rem', // Match Bootstrap sm size
+        borderColor: state.selectProps.className?.includes('is-invalid') ? '#dc3545' : (state.isFocused ? '#86b7fe' : '#ced4da'), // Invalid border color
+    }),
+    valueContainer: (provided) => ({
+        ...provided,
+        padding: '0.25rem 0.8rem', // Adjust padding to vertically align text
+    }),
+    input: (provided) => ({
+        ...provided,
+        margin: '0px',
+        paddingBottom: '0px',
+        paddingTop: '0px',
+        fontSize: '0.875rem',
+    }),
+    indicatorSeparator: () => ({
+        display: 'none', // Hide the separator
+    }),
+    indicatorsContainer: (provided) => ({
+        ...provided,
+        padding: '1px', // Minimal padding for indicators
+        height: '36px',
+    }),
+    placeholder: (provided) => ({
+        ...provided,
+        color: '#6c757d', // Bootstrap placeholder color
+        fontSize: '0.875rem',
+    }),
+    menu: (provided) => ({
+        ...provided,
+        borderRadius: '0.5rem', // Rounded corners for the dropdown menu
+        boxShadow: '0 0.5rem 1rem rgba(0, 0, 0, 0.15)', // Standard dropdown shadow
+        zIndex: 1055 // Ensure menu is above modal content
+    }),
+    option: (provided, state) => ({
+        ...provided,
+        backgroundColor: state.isSelected ? '#0d6efd' : state.isFocused ? '#e9ecef' : null, // Bootstrap primary/hover colors
+        color: state.isSelected ? 'white' : 'black',
+        fontSize: '0.875rem',
+        padding: '0.5rem 1rem',
+    }),
+    noOptionsMessage: (provided) => ({
+        ...provided,
+        fontSize: '0.875rem',
+        padding: '0.5rem 1rem',
+    }),
+    loadingMessage: (provided) => ({
+        ...provided,
+        fontSize: '0.875rem',
+        padding: '0.5rem 1rem',
+    }),
+};
+const FORM_CONTAINER_CLASS = "p-3 p-md-4"; // Simplified container class
+const FORM_SELECT_CLASS = "form-select form-select-sm rounded-pill shadow-sm bg-light border"; // Bootstrap classes
+const FORM_CONTROL_CLASS = "form-control form-control-sm rounded-pill shadow-sm bg-light border"; // Bootstrap classes
+const FORM_TEXTAREA_CLASS = "form-control form-control-sm rounded shadow-sm bg-light border"; // Bootstrap classes (not pill)
+const FORM_ACTIONS_ROW_CLASS = "mt-4 pt-2 justify-content-center flex-shrink-0";
+const FORM_CANCEL_BUTTON_CLASS = "btn btn-secondary rounded-5 px-5 m-1 py-1 border-0"; // Changed variant, kept Bootstrap classes
+const FORM_SUBMIT_BUTTON_CLASS = "btn btn-primary rounded-5 px-5 py-1 m-1 align-items-center d-flex justify-content-evenly border-0"; // Kept Bootstrap classes
+const FORM_HEADER_CLOSE_BUTTON_CLASS = 'btn btn-warning rounded-5 px-5 py-2 shadow-sm'; // Keep consistent close button
 
 // --- Helpers ---
 const PAIEMENT_METHODE_OPTIONS = [ { value: "Virement", label: "Virement Bancaire" }, { value: "Chèque", label: "Chèque" }, { value: "Espèces", label: "Espèces" }, { value: "Autre", label: "Autre" } ];
-const formatCurrency = (amount) => { const number = parseFloat(amount); if (isNaN(number)) return null; return number.toLocaleString('fr-MA', { style: 'currency', currency: 'MAD', minimumFractionDigits: 2, maximumFractionDigits: 2 });};
-const truncateText = (text, maxLength = 60) => { if (!text) return ''; if (text.length <= maxLength) { return text; } return text.substring(0, maxLength) + '...';};
+const parseCurrency = (value) => { if (value === null || value === undefined) return NaN; if (typeof value !== 'string') return Number(value) || 0; const cleaned = value.replace(/[\s\u00A0]/g, '').replace(/[^0-9,.-]/g, '').replace(',', '.'); const number = parseFloat(cleaned); return isNaN(number) ? NaN : number; };
+const formatCurrency = (value, fallback = '-') => { const n = parseFloat(value); return isNaN(n) ? fallback : n.toLocaleString('fr-FR', { style: 'currency', currency: 'MAD', minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+const formatDateSimple = (dateString) => { if (!dateString) return '-'; try { if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}/.test(dateString)) { return new Date(dateString).toLocaleDateString('fr-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }); } const d=new Date(dateString); return isNaN(d.getTime())?dateString:d.toLocaleDateString('fr-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }); } catch (e) { return dateString; } };
+// *** Full truncateText implementation included ***
+const truncateText = (text, maxLength = 60) => {
+     if (!text) return '';
+     if (text.length <= maxLength) {
+         return text;
+     }
+     return text.substring(0, maxLength) + '...';
+};
 // --- End Helpers ---
 
-
 const VersementForm = ({
-    itemId, onClose, onItemCreated, onItemUpdated, baseApiUrl
+    itemId = null, // VersementCP ID when editing
+    onClose,
+    onItemCreated,
+    onItemUpdated,
+    baseApiUrl = 'http://localhost:8000/api' // <<< ADJUST/VERIFY Base URL
 }) => {
-    const isEditMode = itemId != null;
-
     // --- State ---
+    const isEditing = useMemo(() => itemId !== null, [itemId]);
     const [formData, setFormData] = useState({ date_versement: '', montant_verse: '', moyen_paiement: '', reference_paiement: '', commentaire: '' });
 
-    // State for Create Mode Dropdowns
+    // State for dropdowns and derived info
     const [conventionOptions, setConventionOptions] = useState([]);
     const [selectedConvention, setSelectedConvention] = useState(null);
-    const [partenaireOptions, setPartenaireOptions] = useState([]);
-    const [selectedPartenaireOption, setSelectedPartenaireOption] = useState(null);
+    const [partnerOptions, setPartnerOptions] = useState([]); // Now just partner info
+    const [selectedPartner, setSelectedPartner] = useState(null); // Now just partner info
+    const [commitmentId, setCommitmentId] = useState(null); // Stores the fetched id_CP
 
-    // State for Edit Mode Display & Create Mode ID resolution
-    const [convPartDetails, setConvPartDetails] = useState({
-        id_cp: null, // Crucial: Holds the Id_CP for submission/validation
-        montant_convenu: null,
-        displayConventionLabel: '', // <<< NEW: For edit mode display
-        displayPartenaireLabel: ''  // <<< NEW: For edit mode display
-    });
+    // State for commitment details (fetched)
+    const [commitmentInfo, setCommitmentInfo] = useState({ montant_convenu: null, total_deja_verse: null }); // total_deja_verse MUST be fetched
 
-    // Loading States
-    const [conventionLoading, setConventionLoading] = useState(false);
-    const [partenaireLoading, setPartenaireLoading] = useState(false);
-    const [isLoading, setIsLoading] = useState(false); // General submit/edit load state
+    // State for validation (like PP form)
+    const [originalMontantVerse, setOriginalMontantVerse] = useState(null); // For edit mode calculation
 
-    // Error States
-    const [error, setError] = useState(null);
-    const [conventionError, setConventionError] = useState(null);
-    const [partenaireError, setPartenaireError] = useState(null);
-    const [validationErrors, setValidationErrors] = useState({});
+    // Loading and Status States
+    const [loadingCommitmentDetails, setLoadingCommitmentDetails] = useState(false);
+    const [loadingConventions, setLoadingConventions] = useState(false); // Renamed for clarity
+    const [loadingPartners, setLoadingPartners] = useState(false);
+    const [loadingData, setLoadingData] = useState(isEditing); // For loading existing versement
+    const [submissionStatus, setSubmissionStatus] = useState({ loading: false, error: null, success: false });
+    const [formErrors, setFormErrors] = useState({});
 
-    // --- Effects ---
+    // --- Fetch Initial Data ---
 
-    // Effect 1: Fetch Conventions (Only in Create Mode)
-    useEffect(() => {
-        if (!isEditMode) {
-            // Reset everything when switching to create mode
-            setFormData({ date_versement: '', montant_verse: '', moyen_paiement: '', reference_paiement: '', commentaire: '' });
-            setSelectedConvention(null);
-            setSelectedPartenaireOption(null);
-            setPartenaireOptions([]);
-            setConvPartDetails({ id_cp: null, montant_convenu: null, displayConventionLabel: '', displayPartenaireLabel: '' });
-            setError(null); setValidationErrors({}); setPartenaireError(null); setConventionError(null);
-
-            // Fetch convention options
-            setConventionLoading(true);
-            axios.get(`${baseApiUrl}/conventions/options`, { withCredentials: true })
-                .then(res => setConventionOptions(Array.isArray(res.data) ? res.data : (res.data.options || [])))
-                .catch(err => setConventionError("Erreur chargement conventions."))
-                .finally(() => setConventionLoading(false));
+    // Effect 1: Fetch Conventions (All modes, but selection only enabled in Create)
+    const fetchConventions = useCallback(async () => {
+        setLoadingConventions(true); setConventionOptions([]); // Reset
+        try {
+            // Assuming an endpoint exists to get convention options { value: id, label: name }
+             // <<< ADJUST/VERIFY API Endpoint >>>
+            const response = await axios.get(`${baseApiUrl}/conventions/options`, { withCredentials: true });
+            // Use response.data directly assuming it's the array [{value, label}, ...]
+            const conventions = Array.isArray(response.data) ? response.data : [];
+            setConventionOptions(conventions);
+        } catch (err) {
+            console.error("Erreur chargement Conventions:", err);
+            setFormErrors(prev => ({ ...prev, convention: "Erreur chargement conventions." }));
+        } finally {
+            setLoadingConventions(false);
         }
-    }, [baseApiUrl, isEditMode]); // Rerun if mode changes
+    }, [baseApiUrl]);
 
-    // Effect 2: Fetch Commitment Details (Only in Create Mode, when convention changes)
     useEffect(() => {
-        if (!isEditMode && selectedConvention?.value) {
-            // Reset partner state when convention changes
-            setPartenaireOptions([]);
-            setSelectedPartenaireOption(null);
-            setConvPartDetails(prev => ({ ...prev, id_cp: null, montant_convenu: null, displayPartenaireLabel: '' })); // Keep existing displayConventionLabel
-            setPartenaireError(null);
-            setFormData(prev => ({ ...prev, montant_verse: '' }));
-            clearValidationError('montant_verse');
+        fetchConventions(); // Fetch conventions on initial load
+    }, [fetchConventions]);
 
-            setPartenaireLoading(true);
-            axios.get(`${baseApiUrl}/conventions/${selectedConvention.value}/commitment-details`, { withCredentials: true })
-                 .then(res => {
-                     const commitments = res.data || [];
-                     const options = commitments.map(commit => {
-                         const partner = commit.partenaire;
-                         const idCp = commit.Id_CP;
-                         const montantConvenu = parseFloat(commit.Montant_Convenu) || 0;
-                         const totalVerse = parseFloat(commit.total_verse) || 0;
-                         const reste = montantConvenu - totalVerse;
-                         const tolerance = 0.001;
-                         const isSold = totalVerse >= (montantConvenu - tolerance);
-                         let statusLabel = isSold ? ' (Soldé)' : (reste > 0 ? ` (Reste: ${formatCurrency(reste)})` : (montantConvenu === 0 ? ' (Convenu: 0)' : ''));
-
-                         return {
-                             value: partner.Id, // Partner ID
-                             label: `${partner?.Description || partner?.Description_Arr ||  `ID: ${partner?.Id}`}${statusLabel}`,
-                             id_cp: idCp,
-                             montant_convenu: montantConvenu,
-                             is_sold: isSold
-                         };
-                     }).sort((a, b) => a.label.localeCompare(b.label));
-                     setPartenaireOptions(options);
-                 })
-                 .catch(err => { setPartenaireError("Erreur chargement engagements."); setPartenaireOptions([]); })
-                 .finally(() => setPartenaireLoading(false));
-        } else if (!isEditMode && !selectedConvention?.value) {
-            // Clear partner options if convention is cleared
-             setPartenaireOptions([]);
-             setSelectedPartenaireOption(null);
-             setConvPartDetails(prev => ({ ...prev, id_cp: null, montant_convenu: null, displayPartenaireLabel: '' }));
-             setPartenaireError(null);
+    // Effect 2: Fetch Existing Versement Data & Related Commitment Details (Edit Mode)
+    useEffect(() => {
+        if (!isEditing || !itemId || conventionOptions.length === 0) { // Wait for conventions too
+            setLoadingData(false);
+            return;
         }
-    }, [selectedConvention, baseApiUrl, isEditMode]); // Dependency: selectedConvention
 
-    // Effect 3: Fetch Versement data (Only in Edit Mode)
-    useEffect(() => {
-        if (isEditMode && itemId) {
-             // Reset form before loading edit data
-             setFormData({ date_versement: '', montant_verse: '', moyen_paiement: '', reference_paiement: '', commentaire: '' });
-             setSelectedConvention(null); setSelectedPartenaireOption(null); setPartenaireOptions([]);
-             setConvPartDetails({ id_cp: null, montant_convenu: null, displayConventionLabel: '', displayPartenaireLabel: '' });
-             setError(null); setValidationErrors({}); setPartenaireError(null); setConventionError(null);
+        let isMounted = true;
+        const fetchEditData = async () => {
+            setLoadingData(true);
+            // Reset everything before loading
+            setSubmissionStatus({}); setFormErrors({}); setSelectedConvention(null); setSelectedPartner(null);
+            setPartnerOptions([]); setCommitmentId(null); setCommitmentInfo({ montant_convenu: null, total_deja_verse: null });
+            setOriginalMontantVerse(null);
 
-             setIsLoading(true); // Use the general loading state
-            axios.get(`${baseApiUrl}/versements/${itemId}`, { withCredentials: true })
-                .then(response => {
-                    const itemData = response.data.versement;
-                    if (!itemData?.conv_part?.convention || !itemData?.conv_part?.partenaire) {
-                        throw new Error("Données Convention/Partenaire liées manquantes.");
+            try {
+                // --- Step 1: Fetch the VersementCP itself ---
+                 // <<< ADJUST/VERIFY API Path >>>
+                const versementResponse = await axios.get(`${baseApiUrl}/versements/${itemId}`, { withCredentials: true });
+                const data = versementResponse.data?.versement;
+                console.log("Data received in fetchEditData:",!data?.conv_part?.convention_id ,' ||', !data?.convPart?.partenaire_id ,' ||', !data?.convPart?.convention  ,' ||', !data?.convPart?.partenaire  ,' ||', data?.id_CP === undefined); // <<< ADD THIS LOG
+
+                // Validate required nested data points exist from the versement fetch
+                if (!data?.conv_part?.convention_id || !data?.conv_part?.partenaire_id || !data?.conv_part?.convention || !data?.conv_part?.partenaire || !data?.id_CP === undefined) {
+                     console.error("Missing data in fetched versement:", data);
+                    throw new Error("Données API incomplètes reçues pour le versement ou son engagement associé (convention/partenaire).");
+                }
+
+                if (!isMounted) return;
+
+                const currentMontantVerseNum = parseCurrency(data.montant_verse ?? 0);
+
+                setFormData({
+                    date_versement: data.date_versement?.split('T')[0] ?? '',
+                    montant_verse: String(data.montant_verse ?? ''),
+                    moyen_paiement: data.moyen_paiement ?? '',
+                    reference_paiement: data.reference_paiement ?? '',
+                    commentaire: data.commentaire ?? ''
+                });
+                setOriginalMontantVerse(currentMontantVerseNum);
+                const fetchedCommitmentId = data.id_CP;
+                setCommitmentId(fetchedCommitmentId);
+
+                const initialConvention = conventionOptions.find(opt => String(opt.value) === String(data.conv_part.convention_id));
+                if (initialConvention) {
+                    setSelectedConvention(initialConvention);
+                    const partner = data.conv_part.partenaire;
+                    const partnerLabel = `${partner.Code ? partner.Code + ' - ' : ''}${partner.Description||partner.Description_Arr||`ID: ${partner.Id}`}`;
+                    const partnerOption = { value: partner.Id, label: partnerLabel };
+                    setPartnerOptions([partnerOption]);
+                    setSelectedPartner(partnerOption);
+                } else {
+                    console.warn("Associated convention not found in options. Versement data:", data);
+                    setFormErrors(prev => ({ ...prev, convention: "Convention associée non trouvée." }));
+                }
+
+                // --- Step 2: Fetch Commitment Details (Amount & Total Paid) ---
+                setLoadingCommitmentDetails(true);
+                try {
+                    // <<< ADJUST/VERIFY API Endpoint & Params >>> Use the lookup route
+                    const detailsUrl = `${baseApiUrl}/convparts/lookup?convention_id=${data.conv_part.convention_id}&partenaire_id=${data.conv_part.partenaire_id}`;
+                    const detailsResponse = await axios.get(detailsUrl, { withCredentials: true });
+
+                    if (isMounted && detailsResponse.data) {
+                         // Destructure and check all required fields from the lookup response
+                        const { id_cp, montant_convenu, total_deja_verse } = detailsResponse.data;
+                        if (id_cp == fetchedCommitmentId && montant_convenu !== undefined && total_deja_verse !== undefined) {
+                            setCommitmentInfo({
+                                montant_convenu: montant_convenu,
+                                total_deja_verse: total_deja_verse ?? 0
+                            });
+                        } else {
+                            console.error("Incomplete or mismatched commitment details received:", detailsResponse.data);
+                            throw new Error("Détails d'engagement (montant/total payé) invalides ou ID ne correspond pas.");
+                        }
+                    } else if (isMounted) {
+                         throw new Error("Aucune donnée reçue pour les détails d'engagement.");
                     }
-                    const formattedDate = itemData.date_versement ? new Date(itemData.date_versement).toISOString().split('T')[0] : '';
-                    const convInfo = itemData.conv_part.convention;
-                    const partInfo = itemData.conv_part.partenaire;
+                } catch (detailsErr) {
+                     if (isMounted) {
+                        console.error("Erreur chargement Détails Engagement (Edit):", detailsErr);
+                        setCommitmentInfo({ montant_convenu: null, total_deja_verse: null });
+                        setFormErrors(prev => ({ ...prev, commitment: `Erreur chargement détails engagement (${detailsErr.message}).` }));
+                     }
+                } finally {
+                    if (isMounted) setLoadingCommitmentDetails(false);
+                }
 
-                    // Set form data fields
-                    setFormData({
-                        date_versement: formattedDate,
-                        montant_verse: itemData.montant_verse || '',
-                        moyen_paiement: itemData.moyen_paiement || '',
-                        reference_paiement: itemData.reference_paiement || '',
-                        commentaire: itemData.commentaire || ''
-                    });
+            } catch (err) {
+                if (isMounted) {
+                    console.error("Erreur chargement Versement (Edit):", err);
+                    setSubmissionStatus({ loading: false, error: err.message || "Erreur chargement détails du versement.", success: false });
+                    setSelectedConvention(null); setSelectedPartner(null); setPartnerOptions([]); setCommitmentId(null); setCommitmentInfo({ montant_convenu: null, total_deja_verse: null });
+                }
+            } finally {
+                if (isMounted) setLoadingData(false);
+            }
+        };
 
-                    // Set details needed for validation/display AND the new display labels
-                    setConvPartDetails({
-                        id_cp: itemData.id_CP, // <<< Store the ID_CP
-                        montant_convenu: itemData.conv_part.Montant_Convenu,
-                        displayConventionLabel: `${convInfo.code} - ${truncateText(convInfo.intitule || '', 60)}`, // <<< Set display label
-                        displayPartenaireLabel: partInfo.Description ||partInfo.Description_Arr  || `ID: ${partInfo.Id}`// <<< Set display label
-                    });
+        fetchEditData();
+        return () => { isMounted = false };
+    }, [itemId, isEditing, baseApiUrl, conventionOptions]);
 
-                })
-                .catch(err => { setError(err.response?.data?.message || err.message || "Erreur chargement du versement."); })
-                .finally(() => setIsLoading(false));
+
+    // Effect 3: Fetch Partners (Only runs in CREATE mode when convention changes)
+    useEffect(() => {
+        if (isEditing || !selectedConvention) {
+            if(!selectedConvention) {
+                 setPartnerOptions([]); setSelectedPartner(null); setCommitmentId(null); setCommitmentInfo({ montant_convenu: null, total_deja_verse: null });
+            }
+            return;
         }
-    }, [itemId, isEditMode, baseApiUrl]); // Rerun if itemId changes
+
+        const conventionId = selectedConvention.value;
+        let isMounted = true;
+        const fetchPartnersForConvention = async () => {
+            setLoadingPartners(true);
+            setPartnerOptions([]); setSelectedPartner(null); setCommitmentId(null); setCommitmentInfo({ montant_convenu: null, total_deja_verse: null });
+            setFormErrors(prev => ({ ...prev, partner: undefined, commitment: undefined }));
+
+            try {
+                // <<< ADJUST/VERIFY API Endpoint >>> Use the correct endpoint from routes/api.php
+                const url = `${baseApiUrl}/conventions/${conventionId}/partenaire-options`;
+                const response = await axios.get(url, { withCredentials: true });
+
+                if (isMounted) {
+                    // Backend now returns array [{value, label}, ...] directly
+                    const partnersArray = Array.isArray(response.data) ? response.data : [];
+                    setPartnerOptions(partnersArray); // Use the array directly
+                }
+            } catch (err) {
+                console.error(`Erreur chargement Partenaires Convention ${conventionId}:`, err.response || err);
+                if (isMounted) setFormErrors(prev => ({ ...prev, partner: "Erreur chargement partenaires." }));
+            } finally {
+                if (isMounted) setLoadingPartners(false);
+            }
+        };
+
+        fetchPartnersForConvention();
+        return () => { isMounted = false };
+    }, [selectedConvention, baseApiUrl, isEditing]);
+
+
+    // Effect 4: Fetch Commitment Details (ID, Amount, Total Paid) (Only in CREATE mode when Convention & Partner change)
+    useEffect(() => {
+        // <<< --- EXPLICIT EDITING CHECK ADDED --- >>>
+        if (isEditing) {
+            return; // Stop if in Edit mode
+        }
+        // <<< --- END ADDED CHECK --- >>>
+
+        // Proceed only if both selections are made in Create mode
+        if (!selectedConvention || !selectedPartner) {
+            setCommitmentId(null);
+            setCommitmentInfo({ montant_convenu: null, total_deja_verse: null });
+            return;
+        }
+
+        const conventionId = selectedConvention.value;
+        const partnerId = selectedPartner.value;
+
+        let isMounted = true;
+        const fetchCommitmentDetails = async () => {
+            setLoadingCommitmentDetails(true);
+            setCommitmentId(null);
+            setCommitmentInfo({ montant_convenu: null, total_deja_verse: null });
+            setFormErrors(prev => ({ ...prev, commitment: undefined }));
+
+            try {
+                // Use the lookup route
+                const url = `${baseApiUrl}/convparts/lookup?convention_id=${conventionId}&partenaire_id=${partnerId}`;
+                const response = await axios.get(url, { withCredentials: true });
+
+                if (isMounted && response.data) {
+                    const { id_cp, montant_convenu, total_deja_verse } = response.data;
+                    if (id_cp && montant_convenu !== undefined && total_deja_verse !== undefined) {
+                        setCommitmentId(id_cp);
+                        setCommitmentInfo({ montant_convenu: montant_convenu, total_deja_verse: total_deja_verse ?? 0 });
+                        setFormErrors(prev => ({...prev, montant_verse: undefined}));
+                    } else {
+                         console.error("Incomplete API response from lookup:", response.data);
+                         throw new Error("Réponse API incomplète pour détails engagement.");
+                    }
+                } else if (isMounted) {
+                     throw new Error("Aucune donnée reçue pour détails engagement.");
+                }
+            } catch (err) {
+                console.error(`Erreur chargement Détails Engagement Conv ${conventionId}/Part ${partnerId}:`, err);
+                 if (isMounted) {
+                    const errorMsg = err.response?.status === 404 ? "Aucun engagement trouvé pour ce partenaire/convention." : (err.message || "Erreur chargement détails.");
+                    setFormErrors(prev => ({ ...prev, commitment: errorMsg }));
+                    setCommitmentInfo({ montant_convenu: null, total_deja_verse: null });
+                }
+            } finally {
+                if (isMounted) setLoadingCommitmentDetails(false);
+            }
+        };
+
+        fetchCommitmentDetails();
+        return () => { isMounted = false };
+    }, [selectedConvention, selectedPartner, baseApiUrl, isEditing]); // Dependencies remain the same
+
 
     // --- Handlers ---
+
+    // Handle Convention Change (Create Mode Only)
+     const handleConventionChange = (selectedOption) => {
+         if (isEditing) return;
+         setSelectedConvention(selectedOption);
+         setSelectedPartner(null);
+         setPartnerOptions([]);
+         setCommitmentId(null);
+         setCommitmentInfo({ montant_convenu: null, total_deja_verse: null });
+         setFormErrors(prev => ({...prev, convention: undefined, partner: undefined, commitment: undefined }));
+     };
+
+    // Handle Partner Change (Create Mode Only)
+     const handlePartnerChange = (selectedOption) => {
+         if (isEditing) return;
+         setSelectedPartner(selectedOption);
+         setCommitmentId(null);
+         setCommitmentInfo({ montant_convenu: null, total_deja_verse: null });
+         setFormErrors(prev => ({...prev, partner: undefined, commitment: undefined }));
+     };
+
+    // Handle General Form Input Change (Includes Amount Validation)
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
-        clearValidationError(name);
-        // Re-validate amount if it changes
-        if (name === 'montant_verse' && convPartDetails?.montant_convenu != null) {
-            validateMontant(value, convPartDetails.montant_convenu);
-        }
-    };
+        const newFormData = { ...formData, [name]: value };
+        setFormData(newFormData);
+        if (formErrors[name]) setFormErrors(prev => ({ ...prev, [name]: undefined }));
 
-    // Handler only for Create Mode Convention change
-    const handleConventionChange = (selectedOption) => {
-        if (isEditMode) return; // Should not happen if disabled, but good practice
-        setSelectedConvention(selectedOption);
-        // Reset partner state (done in useEffect for selectedConvention)
-    };
+        // --- VALIDATION LOGIC ---
+        if (name === 'montant_verse' && commitmentInfo.montant_convenu !== null) {
+            const montantConvenuNum = parseFloat(commitmentInfo.montant_convenu);
+            const totalDejaVerseCompletNum = commitmentInfo.total_deja_verse !== null ? parseFloat(commitmentInfo.total_deja_verse) : NaN;
+            const montantOriginalCeVersementNum = isEditing && originalMontantVerse !== null ? originalMontantVerse : 0;
+            const montantActuelSaisiNum = parseCurrency(value);
 
-    // Handler only for Create Mode Partenaire change
-    const handlePartenaireChange = (selectedOption) => {
-        if (isEditMode) return; // Should not happen if disabled, but good practice
-        setSelectedPartenaireOption(selectedOption); // Store the full selected option
+            if (!isNaN(montantConvenuNum) && !isNaN(totalDejaVerseCompletNum) && !isNaN(montantActuelSaisiNum)) {
+                const totalVerseParAutresNum = Math.max(0, totalDejaVerseCompletNum - montantOriginalCeVersementNum);
+                const maxValeurPourCeVersement = Math.max(0, montantConvenuNum - totalVerseParAutresNum);
 
-        if (selectedOption) {
-            setConvPartDetails(prev => ({ // Keep existing displayConventionLabel
-                ...prev,
-                id_cp: selectedOption.id_cp,
-                montant_convenu: selectedOption.montant_convenu,
-                displayPartenaireLabel: '' // Clear display label in create mode
-            }));
-            if (formData.montant_verse) { // Revalidate amount if already entered
-                validateMontant(formData.montant_verse, selectedOption.montant_convenu);
+                if (montantActuelSaisiNum > maxValeurPourCeVersement + 0.001) {
+                    setFormErrors(prev => ({ ...prev, montant_verse: `Dépasse le max possible (${formatCurrency(maxValeurPourCeVersement)}).` }));
+                } else if (montantActuelSaisiNum <= 0) {
+                     setFormErrors(prev => ({...prev, montant_verse: 'Montant doit être strictement positif.'}));
+                } else {
+                    setFormErrors(prev => ({...prev, montant_verse: undefined}));
+                }
+            } else if (!isNaN(montantActuelSaisiNum) && montantActuelSaisiNum <= 0) {
+                setFormErrors(prev => ({...prev, montant_verse: 'Montant doit être strictement positif.'}));
+            } else {
+                 setFormErrors(prev => ({...prev, montant_verse: undefined}));
             }
-        } else {
-            setConvPartDetails(prev => ({ // Keep existing displayConventionLabel
-                 ...prev,
-                 id_cp: null,
-                 montant_convenu: null,
-                 displayPartenaireLabel: ''
-            }));
-            setFormData(prev => ({ ...prev, montant_verse: '' }));
-            clearValidationError('montant_verse');
         }
+        // --- End Validation ---
     };
 
-    const clearValidationError = (fieldName) => {
-        if (validationErrors[fieldName]) {
-            setValidationErrors(prev => { const n = { ...prev }; delete n[fieldName]; return n; });
+    // --- Frontend Validation before Submit ---
+    const validateForm = () => {
+        const currentErrors = { ...formErrors };
+        if (!isEditing) {
+             if (!selectedConvention) currentErrors.convention = "Convention requise.";
+             if (!selectedPartner) currentErrors.partner = "Partenaire requis.";
+             if (!commitmentId && !loadingCommitmentDetails && selectedConvention && selectedPartner) {
+                currentErrors.commitment = currentErrors.commitment || "Engagement non trouvé ou erreur chargement détails.";
+             } else if (!commitmentId && selectedConvention && selectedPartner && !loadingCommitmentDetails && !formErrors.commitment) {
+                currentErrors.commitment = "Sélectionnez Convention/Partenaire valides.";
+             }
+        } else if (!commitmentId) {
+             currentErrors.commitment = "Erreur interne: ID Engagement (id_CP) manquant pour la modification.";
         }
-    };
 
-    // Basic client-side check (backend check is primary)
-    const validateMontant = (montant, limite) => {
-        clearValidationError('montant_verse');
-        if (montant === '' || montant == null) return true; // Allow empty during typing
-        const montantNum = parseFloat(montant);
+        if (!formData.date_versement) currentErrors.date_versement = "Date versement requise.";
 
-        if (isNaN(montantNum)) {
-             setValidationErrors(prev => ({ ...prev, montant_verse: [`Format invalide.`] })); return false;
+        const montantNum = parseCurrency(formData.montant_verse);
+        const montantValide = !isNaN(montantNum) && montantNum > 0;
+        if (!formData.montant_verse || !montantValide) {
+             if (!currentErrors.montant_verse) {
+                 currentErrors.montant_verse = "Montant valide (strictement positif) requis.";
+             }
         }
-        if (montantNum <= 0) {
-            setValidationErrors(prev => ({ ...prev, montant_verse: [`Le montant doit être positif.`] }));
-            return false;
-        }
-        // Optional: Add a basic check against the limit if needed, but rely on backend
-        // const limiteNum = parseFloat(limite);
-        // if (!isNaN(limiteNum) && montantNum > limiteNum) { ... }
-        return true;
+
+        if (!formData.moyen_paiement?.trim()) currentErrors.moyen_paiement = "Moyen de paiement requis.";
+
+        setFormErrors(currentErrors);
+        return Object.values(currentErrors).every(error => !error);
     };
 
     // --- Submit Handler ---
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(null);
-        setValidationErrors({});
-        let isValid = true;
-        const currentErrors = {};
-
-        // Use the id_cp from convPartDetails state (set in useEffect or handlePartenaireChange)
-        const currentIdCp = convPartDetails.id_cp;
-        if (!currentIdCp) {
-             // This error is less likely now, especially in edit mode, but keep as a fallback
-             setError("L'engagement (Convention/Partenaire) n'a pas pu être identifié.");
-             isValid = false;
+        if (!validateForm()) {
+            setSubmissionStatus({ loading: false, error: "Veuillez corriger les erreurs indiquées.", success: false });
+            return;
+        }
+        if (!commitmentId) {
+            setSubmissionStatus({ loading: false, error: "ID Engagement (id_CP) est manquant. Impossible de sauvegarder.", success: false });
+            return;
         }
 
-        // Basic required field checks
-        if (!formData.date_versement) { currentErrors.date_versement = ["Date obligatoire."]; isValid = false; }
-        if (!formData.montant_verse) { currentErrors.montant_verse = ["Montant obligatoire."]; isValid = false; }
-        else if (!validateMontant(formData.montant_verse, convPartDetails.montant_convenu)) { isValid = false; }
-        if (!formData.moyen_paiement) { currentErrors.moyen_paiement = ["Moyen obligatoire."]; isValid = false; }
+        setSubmissionStatus({ loading: true, error: null, success: false });
+        setFormErrors({});
 
-        if (!isValid) { setValidationErrors(currentErrors); return; }
+        const dataToSubmit = {
+             ...(isEditing ? {} : { id_CP: commitmentId }),
+             date_versement: formData.date_versement,
+             montant_verse: parseCurrency(formData.montant_verse),
+             moyen_paiement: formData.moyen_paiement,
+             reference_paiement: formData.reference_paiement || null,
+             commentaire: formData.commentaire || null,
+        };
 
-        setIsLoading(true);
-        const url = isEditMode ? `${baseApiUrl}/versements/${itemId}` : `${baseApiUrl}/versements`;
-        const method = isEditMode ? 'put' : 'post';
-        // Ensure id_CP is included only for create, not needed for update route itself
-        const payload = isEditMode ? { ...formData } : { ...formData, id_CP: currentIdCp };
-        // If your update needs id_CP in payload, add it: const payload = { ...formData, id_CP: currentIdCp };
+        // <<< ADJUST/VERIFY API Paths >>>
+        const url = isEditing ? `${baseApiUrl}/versements/${itemId}` : `${baseApiUrl}/versements`;
+        const method = isEditing ? 'put' : 'post';
+        const config = { headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, withCredentials: true };
 
         try {
-            const response = await axios({ method, url, data: payload, withCredentials: true });
-            if (isEditMode) onItemUpdated(response.data.versement); else onItemCreated(response.data.versement);
-            onClose(); // Close modal on success
-        } catch (err) {
-             const resData = err.response?.data;
-             console.error("Error submitting versement:", err.response || err);
-             if (err.response?.status === 422 && resData?.errors) {
-                 setValidationErrors(resData.errors); // Set validation errors from backend
-                 setError(resData.message || "Échec de la validation des données."); // Use backend message
-             } else {
-                 setError(resData?.message || err.message || `Échec de l'opération.`); // General error
-             }
-        } finally {
-            setIsLoading(false);
-        }
-     };
+            const response = await axios[method](url, dataToSubmit, config);
+            setSubmissionStatus({ loading: false, error: null, success: true });
+            const returnedData = response.data.versement;
 
-     // --- Styles --- (Keep your existing styles)
-     const selectStyles = { /* Your existing selectStyles */
-        control: (provided, state) => ({ ...provided, backgroundColor: '#f8f9fa', borderRadius: '1.5rem', border: state.isFocused ? '1px solid #86b7fe' : '1px solid #ced4da', boxShadow: state.isFocused ? '0 0 0 0.25rem rgba(13, 110, 253, 0.25)' : 'none', minHeight: '38px', }), valueContainer: (provided) => ({ ...provided, padding: '0.25rem 0.8rem', }), input: (provided) => ({ ...provided, margin: '0px', padding: '0px', }), indicatorSeparator: () => ({ display: 'none', }), indicatorsContainer: (provided) => ({ ...provided, padding: '1px', }), placeholder: (provided) => ({ ...provided, color: '#6c757d', }), menu: (provided) => ({ ...provided, borderRadius: '0.5rem', boxShadow: '0 0.5rem 1rem rgba(0, 0, 0, 0.15)', zIndex: 1050 }), option: (provided, state) => ({ ...provided, backgroundColor: state.isSelected ? '#0d6efd' : state.isFocused ? '#e9ecef' : null, color: state.isSelected ? 'white' : 'black', }),
+            if (isEditing) {
+                onItemUpdated?.(returnedData);
+            } else {
+                onItemCreated?.(returnedData);
+            }
+             setTimeout(() => {
+                 if (!isEditing) {
+                     setFormData({ date_versement: '', montant_verse: '', moyen_paiement: '', reference_paiement: '', commentaire: '' });
+                     setSelectedConvention(null);
+                 }
+                  onClose();
+             }, 500);
+
+        } catch (err) {
+            console.error(`Erreur ${isEditing ? 'modif.' : 'création'} versement CP:`, err.response || err);
+            let errorMsg = `Une erreur s'est produite lors de la sauvegarde.`;
+            let serverErrors = {};
+            if (err.response) {
+                errorMsg = err.response.data?.message || `Erreur serveur (${err.response.status})`;
+                if (err.response.status === 422 && typeof err.response.data.errors === 'object') {
+                    serverErrors = err.response.data.errors;
+                    const mappedErrors = {};
+                    Object.keys(serverErrors).forEach(key => {
+                        const formKey = key === 'id_CP' ? 'commitment' : key;
+                        mappedErrors[formKey] = Array.isArray(serverErrors[key]) ? serverErrors[key].join(' ') : String(serverErrors[key]);
+                    });
+                    setFormErrors(mappedErrors);
+                    errorMsg = mappedErrors.montant_verse || "Erreurs de validation reçues du serveur.";
+                }
+            } else {
+                errorMsg = err.message;
+            }
+            setSubmissionStatus({ loading: false, error: errorMsg, success: false });
+        }
     };
 
-    // --- Render ---
+    // --- Render Logic ---
+    const isLoadingInitial = loadingData || loadingConventions;
+    const isLoadingDependencies = loadingPartners || loadingCommitmentDetails;
+    const isSubmitButtonDisabled = isLoadingInitial || isLoadingDependencies || submissionStatus.loading || !!formErrors.montant_verse || (isEditing ? !commitmentId : !commitmentId) || Object.keys(formErrors).length > 0;
+
+    // --- Calculation logic for display values (like PP form) ---
+    const montantConvenuNum = commitmentInfo.montant_convenu !== null ? parseFloat(commitmentInfo.montant_convenu) : NaN;
+    const totalDejaVerseCompletNum = commitmentInfo.total_deja_verse !== null ? parseFloat(commitmentInfo.total_deja_verse) : NaN;
+    const montantOriginalCeVersementNum = isEditing && originalMontantVerse !== null ? originalMontantVerse : 0;
+    const montantActuelSaisiNum = parseCurrency(formData.montant_verse);
+
+    let montantRestantAffichage = NaN;
+    let maxVersementPossibleHelper = NaN;
+
+    if (!isNaN(montantConvenuNum) && !isNaN(totalDejaVerseCompletNum)) {
+        const totalVerseParAutresNum = Math.max(0, totalDejaVerseCompletNum - montantOriginalCeVersementNum);
+        if (!isNaN(montantActuelSaisiNum)) {
+            montantRestantAffichage = montantConvenuNum - totalVerseParAutresNum - montantActuelSaisiNum;
+        } else {
+            montantRestantAffichage = montantConvenuNum - totalDejaVerseCompletNum;
+        }
+        maxVersementPossibleHelper = Math.max(0, montantConvenuNum - totalVerseParAutresNum);
+    }
+    // --- End Calculation ---
+
+     if (isLoadingInitial && isEditing) {
+         return <div className="d-flex justify-content-center align-items-center p-5" style={{ minHeight: '400px' }}><Spinner /> <span className='ms-3 text-muted'>Chargement du versement...</span></div>;
+     }
+
     return (
-        // Keep Card structure if you like it
-        <Card className='border-0 pt-2 rounded-5'>
-            {/* Header can remain outside Form */}
-            <Modal.Header className='d-flex justify-content-between border-0'>
-                <Modal.Title>{isEditMode ? 'Modifier un Versement' : 'Ajouter un Versement'}</Modal.Title>
-                <Button variant='warning' className='rounded-5 fw-bold px-5' onClick={onClose}>
-                    Revenir a la liste
-                </Button>
-            </Modal.Header>
+        // Using Modal structure for consistency
+        <div className="m-2 p-5 card shadow-sm border-0">
+             <div className="d-flex justify-content-between align-items-center mb-4 flex-shrink-0"><div><h5 className="text-uppercase fw-bold text-secondary mb-1">{isEditing ? 'Modifier' : 'Ajouter'}</h5><h2 className="mb-0 fw-bold">Versement</h2></div><Button variant="warning" onClick={onClose} size="sm" className='rounded-5 px-5'><b>Revenir a la liste</b></Button></div>
 
-            <Form onSubmit={handleSubmit} noValidate className='py-2'>
-                <Modal.Body>
-                    {error && <Alert variant="danger" size="sm">{error}</Alert>}
-                    {isLoading && <div className="text-center my-3"><Spinner animation="border" size="sm"/><span className="ms-2 small">Chargement...</span></div>}
+            <Form noValidate onSubmit={handleSubmit}>
+                <Modal.Body style={{ maxHeight: 'calc(80vh - 120px)', overflowY: 'auto',overflowX:'hidden' }}>
+                    {/* Status Alerts */}
+                    {submissionStatus.error && ( <Alert variant="danger" className="mb-3 py-2" dismissible onClose={() => setSubmissionStatus(prev => ({...prev, error: null}))}><FontAwesomeIcon icon={faExclamationTriangle} className="me-2"/> {submissionStatus.error}</Alert> )}
+                    {submissionStatus.success && ( <Alert variant="success" className="mb-3 py-2">Versement {isEditing ? 'modifié' : 'ajouté'} avec succès !</Alert> )}
 
-                    {/* Render form only when not loading edit data */}
-                    {!isLoading && (
-                       <><Row className="g-3">
-                            {/* 1. Convention Field */}
-                            <Col md={6}> {/* Adjusted grid size */}
-                                <Form.Group controlId="versementConvention">
-                                    <Form.Label>Convention*</Form.Label>
-                                    {isEditMode ? (
-                                        <Form.Control
-                                            className='rounded-5 px-3 py-2' // Apply consistent styling
-                                            type="text"
-                                            value={convPartDetails.displayConventionLabel}
-                                            disabled
-                                            readOnly // Indicate it's read-only
-                                        />
-                                    ) : (
-                                        <Select
-                                            options={conventionOptions}
-                                            value={selectedConvention}
-                                            onChange={handleConventionChange}
-                                            placeholder="Sélectionner Convention..."
-                                            isClearable
-                                            isLoading={conventionLoading}
-                                            styles={selectStyles}
-                                            required
-                                        />
-                                    )}
-                                    {conventionError && !conventionLoading && !isEditMode && <Form.Text className="text-danger small">{conventionError}</Form.Text>}
-                                </Form.Group>
-                            </Col>
-                            
+                    {/* === Section 1: Convention & Partner Selection === */}
+                     <h5 className="mb-3 mt-1 fw-semibold text-warning border-bottom pb-2">Engagement Associé</h5>
+                     <Row className="mb-3 g-3">
+                         <Col md={6}>
+                             <Form.Group controlId="formConvention">
+                                 <Form.Label className="small mb-1 fw-medium">Convention <span className="text-danger">*</span></Form.Label>
+                                 <Select
+                                     name="convention"
+                                     options={conventionOptions}
+                                     value={selectedConvention}
+                                     onChange={handleConventionChange}
+                                     styles={selectStyles}
+                                     placeholder={loadingConventions ? "Chargement..." : "- Sélectionner Convention -"}
+                                     isClearable
+                                     isLoading={loadingConventions}
+                                     isDisabled={loadingConventions || isEditing || submissionStatus.loading}
+                                     className={formErrors.convention ? 'is-invalid' : ''}
+                                     classNamePrefix="react-select"
+                                 />
+                                 {formErrors.convention && <div className="invalid-feedback d-block ps-2 pt-1">{formErrors.convention}</div>}
+                                 {isEditing && <Form.Text className="text-muted small ms-1">Convention non modifiable lors de la modification.</Form.Text>}
+                             </Form.Group>
+                         </Col>
+                         <Col md={6}>
+                             <Form.Group controlId="formPartner">
+                                 <Form.Label className="small mb-1 fw-medium">Partenaire <span className="text-danger">*</span></Form.Label>
+                                 <Select
+                                     name="partenaire"
+                                     options={partnerOptions}
+                                     value={selectedPartner}
+                                     onChange={handlePartnerChange}
+                                     styles={selectStyles}
+                                     placeholder={loadingPartners ? "Chargement..." : (selectedConvention ? "- Sélectionner Partenaire -" : "Choisir Convention d'abord")}
+                                     isClearable
+                                     isLoading={loadingPartners}
+                                     isDisabled={!selectedConvention || loadingPartners || isEditing || submissionStatus.loading}
+                                     className={formErrors.partner ? 'is-invalid' : ''}
+                                     classNamePrefix="react-select"
+                                     noOptionsMessage={() => loadingPartners ? 'Chargement...' : (selectedConvention ? 'Aucun partenaire trouvé' : 'Choisir Convention')}
+                                 />
+                                 {formErrors.partner && <div className="invalid-feedback d-block ps-2 pt-1">{formErrors.partner}</div>}
+                                 {isEditing && <Form.Text className="text-muted small ms-1">Partenaire non modifiable lors de la modification.</Form.Text>}
+                             </Form.Group>
+                         </Col>
+                     </Row>
+                      {/* Display Commitment Info/Status */}
+                     <Row className="mb-3 g-3">
+                         <Col>
+                              {isLoadingDependencies && ( <div className="text-muted small d-flex align-items-center"><Spinner size="sm" animation="border" className="me-2" /> Recherche détails engagement...</div> )}
+                              {!isLoadingDependencies && commitmentId && commitmentInfo.montant_convenu !== null && (
+                                <Alert variant="light" className="py-2 px-3 d-flex justify-content-between align-items-center flex-wrap border shadow-sm small">
+                                     <div className='me-3 mb-1 mb-md-0'><FontAwesomeIcon icon={faStickyNote} className="me-1 text-secondary"/> ID Engagement (CP): <strong>{commitmentId}</strong></div>
+                                     <div className='me-3 mb-1 mb-md-0'>Montant Convenu: <strong>{formatCurrency(commitmentInfo.montant_convenu)}</strong></div>
+                                     {!isNaN(montantRestantAffichage) && (
+                                         <div>Montant Restant (Après ce versement): <strong className={montantRestantAffichage < 0.01 && montantRestantAffichage > -0.01 ? 'text-success' : (montantRestantAffichage < 0 ? 'text-danger' : 'text-primary')}>{formatCurrency(montantRestantAffichage)}</strong></div>
+                                     )}
+                                </Alert>
+                             )}
+                             {formErrors.commitment && ( <Alert variant="danger" size="sm" className="py-1 px-3 small"><FontAwesomeIcon icon={faExclamationTriangle} className="me-2"/> {formErrors.commitment}</Alert> )}
+                         </Col>
+                    </Row>
 
-                            {/* 2. Partenaire/Commitment Field */}
-                            <Col md={6}> {/* Adjusted grid size */}
-                                <Form.Group controlId="versementPartenaire">
-                                    <Form.Label>Partenaire (Engagement)*</Form.Label>
-                                    {isEditMode ? (
-                                        <Form.Control
-                                             className='rounded-5 px-3 py-2' // Apply consistent styling
-                                            type="text"
-                                            value={convPartDetails.displayPartenaireLabel}
-                                            disabled
-                                            readOnly // Indicate it's read-only
-                                        />
-                                    ) : (
-                                        <Select
-                                            options={partenaireOptions}
-                                            value={selectedPartenaireOption}
-                                            onChange={handlePartenaireChange}
-                                            placeholder={!selectedConvention ? "Choisir convention d'abord" : "Sélectionner Partenaire..."}
-                                            isClearable
-                                            isLoading={partenaireLoading}
-                                            isDisabled={!selectedConvention || partenaireLoading}
-                                            styles={selectStyles}
-                                            noOptionsMessage={() => partenaireLoading ? 'Chargement...' : (!selectedConvention ? 'Choisir convention' : (partenaireError || 'Aucun partenaire/engagement'))}
-                                            required
-                                            isOptionDisabled={(option) => option.is_sold} // Prevent selecting paid ones
-                                        />
-                                    )}
-                                    {partenaireError && !partenaireLoading && !isEditMode && <Form.Text className="text-danger small">{partenaireError}</Form.Text>}
-                                    {partenaireLoading && !isEditMode && <div className="text-muted small mt-1"><Spinner animation="border" size="sm" /> Chargement engagements...</div>}
-                                </Form.Group>
-                            </Col>
-</Row><Row>
-                            {/* 3. Other Fields (Date, Montant, etc.) */}
-                             <Col md={4}>
-                                 <Form.Group controlId="versementDate">
-                                     <Form.Label>Date Versement*</Form.Label>
-                                     <Form.Control className='rounded-5 px-3 py-2' type="date" name="date_versement" value={formData.date_versement} onChange={handleChange} required isInvalid={!!validationErrors.date_versement} />
-                                     <Form.Control.Feedback type="invalid">{validationErrors.date_versement?.[0]}</Form.Control.Feedback>
-                                 </Form.Group>
-                             </Col>
+                    {/* === Section 2: Versement Details === */}
+                    <h5 className="mb-3 mt-4 fw-semibold text-warning border-bottom pb-2">Détails du Versement</h5>
+                     <Row className="mb-1 g-3">
+                         <Form.Group as={Col} md={4} controlId="formDateVersement">
+                             <Form.Label className="small mb-1 fw-medium">Date Versement <span className="text-danger">*</span></Form.Label>
+                             <Form.Control
+                                className={FORM_CONTROL_CLASS}
+                                isInvalid={!!formErrors.date_versement} required type="date" name="date_versement"
+                                value={formData.date_versement} onChange={handleChange} size="sm" disabled={submissionStatus.loading}/>
+                             <Form.Control.Feedback type="invalid">{formErrors.date_versement}</Form.Control.Feedback>
+                         </Form.Group>
 
-                            <Col md={4}>
-                                <Form.Group controlId="versementMontant">
-                                    <Form.Label>Montant Versé*</Form.Label>
-                                    <InputGroup className='rounded-5' hasValidation>
-                                        <Form.Control className='rounded-start-5 px-3 py-2' type="number" name="montant_verse" value={formData.montant_verse} onChange={handleChange} required step="0.01" min="0.01" isInvalid={!!validationErrors.montant_verse} placeholder="0.00"
-                                            // Disable amount if no commitment selected in create mode
-                                            disabled={!isEditMode && !convPartDetails.id_cp}
-                                        />
-                                        <InputGroup.Text className='rounded-end-5'>MAD</InputGroup.Text>
-                                        <Form.Control.Feedback type="invalid">{validationErrors.montant_verse?.[0]}</Form.Control.Feedback>
-                                    </InputGroup>
-                                    {/* Display limit info */}
-                                    {convPartDetails.montant_convenu != null && !validationErrors.montant_verse && (
-                                        <Form.Text muted>Limite convenue: {formatCurrency(convPartDetails.montant_convenu)}</Form.Text>
-                                    )}
-                                    {/* Prompt to select relationship in create mode */}
-                                    {!isEditMode && !convPartDetails.id_cp && (
-                                        <Form.Text muted>Sélectionnez Convention/Partenaire.</Form.Text>
-                                    )}
-                                </Form.Group>
-                            </Col>
-                            <Col md={4}>
-                                <Form.Group controlId="versementMoyen">
-                                    <Form.Label>Moyen Paiement*</Form.Label>
-                                    <Form.Select name="moyen_paiement" value={formData.moyen_paiement} onChange={handleChange} className='rounded-5 px-3 py-2' required isInvalid={!!validationErrors.moyen_paiement}>
-                                        <option value="">Sélectionner...</option>
-                                        {PAIEMENT_METHODE_OPTIONS.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
-                                    </Form.Select>
-                                    <Form.Control.Feedback type="invalid">{validationErrors.moyen_paiement?.[0]}</Form.Control.Feedback>
-                                </Form.Group>
-                            </Col>
-                            </Row><Row>
-                            <Col md={6}>
-                                <Form.Group controlId="versementReference">
-                                    <Form.Label>Référence Paiement</Form.Label>
-                                    <Form.Control className='rounded-5 px-3 py-2' type="text" name="reference_paiement" value={formData.reference_paiement} onChange={handleChange} isInvalid={!!validationErrors.reference_paiement} maxLength={100} placeholder="N° Chèque, ID Transaction..."/>
-                                    <Form.Control.Feedback type="invalid">{validationErrors.reference_paiement?.[0]}</Form.Control.Feedback>
-                                </Form.Group>
-                            </Col>
-                            <Col md={6}> {/* Changed grid size */}
-                                <Form.Group controlId="versementCommentaire">
-                                    <Form.Label>Commentaire</Form.Label>
-                                    <Form.Control className='rounded-5 px-3 py-2' as="textarea" name="commentaire" rows={1} value={formData.commentaire} onChange={handleChange} isInvalid={!!validationErrors.commentaire}/>
-                                    <Form.Control.Feedback type="invalid">{validationErrors.commentaire?.[0]}</Form.Control.Feedback>
-                                </Form.Group>
-                            </Col>
-                            {/* Display general submission error if ID_CP was missing */}
-                            {validationErrors.id_CP && <Col xs={12}><Alert variant="danger" size="sm">Erreur: {validationErrors.id_CP[0]}</Alert></Col>}
-                        </Row>
-                   </> ) }
+                         <Form.Group as={Col} md={4} controlId="formMontantVerse">
+                             <Form.Label className="small mb-1 fw-medium">Montant Versé (MAD) <span className="text-danger">*</span></Form.Label>
+                             <InputGroup size="sm" hasValidation>
+                                 <Form.Control
+                                    className="form-control-sm"
+                                    style={{borderTopLeftRadius: '1.5rem', borderBottomLeftRadius: '1.5rem', borderRight: 0}}
+                                    isInvalid={!!formErrors.montant_verse} required type="number" name="montant_verse"
+                                    value={formData.montant_verse} onChange={handleChange}
+                                    step="0.01" min="0.01" placeholder="0.00"
+                                    disabled={!commitmentId || isLoadingDependencies || submissionStatus.loading}
+                                 />
+                                 <InputGroup.Text style={{borderTopRightRadius: '1.5rem', borderBottomRightRadius: '1.5rem', background: 'transparent'}}>MAD</InputGroup.Text>
+                                 <Form.Control.Feedback type="invalid">{formErrors.montant_verse}</Form.Control.Feedback>
+                             </InputGroup>
+                             {/* Helper Text */}
+                             {!isNaN(maxVersementPossibleHelper) && !formErrors.montant_verse && maxVersementPossibleHelper >= 0 && commitmentId && (
+                                <Form.Text className="text-muted small ms-1">
+                                    Max autorisé pour ce versement: {formatCurrency(maxVersementPossibleHelper)}
+                                </Form.Text>
+                             )}
+                             {!commitmentId && !isEditing && selectedConvention && selectedPartner && !isLoadingDependencies && !formErrors.commitment && (
+                                <Form.Text className="text-warning small ms-1">Validation engagement...</Form.Text>
+                             )}
+                              {!commitmentId && !isEditing && !(selectedConvention && selectedPartner) && (
+                                <Form.Text className="text-muted small ms-1">Sélectionnez Convention/Partenaire.</Form.Text>
+                             )}
+                         </Form.Group>
+
+                         <Form.Group as={Col} md={4} controlId="formMoyenPaiement">
+                             <Form.Label className="small mb-1 fw-medium">Moyen de Paiement <span className="text-danger">*</span></Form.Label>
+                             <Form.Select
+                                className={FORM_SELECT_CLASS}
+                                name="moyen_paiement" value={formData.moyen_paiement} onChange={handleChange} required
+                                isInvalid={!!formErrors.moyen_paiement} size="sm" disabled={submissionStatus.loading}>
+                                 <option value="">-- Sélectionner --</option>
+                                 {PAIEMENT_METHODE_OPTIONS.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
+                             </Form.Select>
+                             <Form.Control.Feedback type="invalid">{formErrors.moyen_paiement}</Form.Control.Feedback>
+                         </Form.Group>
+                     </Row>
+                     {/* Reference & Commentaire */}
+                     <Row className="mb-1 g-3">
+                         <Form.Group as={Col} md={12} controlId="formReferencePaiement">
+                             <Form.Label className="small mb-1 fw-medium">Référence Paiement</Form.Label>
+                             <Form.Control
+                                className={FORM_CONTROL_CLASS}
+                                isInvalid={!!formErrors.reference_paiement} type="text" name="reference_paiement"
+                                value={formData.reference_paiement} onChange={handleChange} size="sm" maxLength={100} disabled={submissionStatus.loading}/>
+                             <Form.Control.Feedback type="invalid">{formErrors.reference_paiement}</Form.Control.Feedback>
+                         </Form.Group>
+                     </Row>
+                     <Row className="mb-3 g-3">
+                         <Form.Group as={Col} md={12} controlId="formCommentaire">
+                             <Form.Label className="small mb-1 fw-medium">Commentaire</Form.Label>
+                             <Form.Control
+                                className={FORM_TEXTAREA_CLASS}
+                                style={{borderRadius: '1rem'}} as="textarea" rows={3} name="commentaire"
+                                value={formData.commentaire} onChange={handleChange} size="sm" disabled={submissionStatus.loading}/>
+                             <Form.Control.Feedback type="invalid">{formErrors.commentaire}</Form.Control.Feedback>
+                         </Form.Group>
+                     </Row>
                 </Modal.Body>
-                <Modal.Footer className='d-flex justify-content-center p-3 border-0'>
-                    {/* Keep footer buttons */}
-                     <Button variant="danger" onClick={onClose} disabled={isLoading || conventionLoading || partenaireLoading} className='px-5 rounded-5 m-2'> Annuler </Button>
-                    <Button variant="primary" type="submit" disabled={isLoading || conventionLoading || partenaireLoading || (!isEditMode && !convPartDetails.id_cp)} className='px-5 m-2 rounded-5'>
-                        {isLoading ? <Spinner as="span" animation="border" size="sm" /> : (isEditMode ? 'Enregistrer' : 'Ajouter')}
-                    </Button>
+
+                <Modal.Footer className='border-0 justify-content-center'>
+                     <Button onClick={onClose}  variant="danger" className={FORM_CANCEL_BUTTON_CLASS} disabled={submissionStatus.loading}>Annuler</Button>
+                    <Button type="submit" className={FORM_SUBMIT_BUTTON_CLASS} >
+                         {submissionStatus.loading ? <><Spinner as="span" animation="border" size="sm" className="me-2"/> Enregistrement...</> : (isEditing ? 'Enregistrer Modifications' : 'Créer Versement')}
+                     </Button>
                 </Modal.Footer>
             </Form>
-        </Card>
+        </div>
     );
 };
 
-// --- PropTypes --- (Keep your PropTypes)
-VersementForm.propTypes = { /* ... */ };
+// --- PropTypes & Default Props ---
+VersementForm.propTypes = {
+    itemId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    onClose: PropTypes.func.isRequired,
+    onItemCreated: PropTypes.func,
+    onItemUpdated: PropTypes.func,
+    baseApiUrl: PropTypes.string
+};
+VersementForm.defaultProps = {
+    itemId: null,
+    onItemCreated: (v) => console.log("Versement CP Created:", v),
+    onItemUpdated: (v) => console.log("Versement CP Updated:", v),
+    baseApiUrl: 'http://localhost:8000/api'
+};
 
 export default VersementForm;

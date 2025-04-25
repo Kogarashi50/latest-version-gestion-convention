@@ -6,12 +6,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Storage; // Import Storage facade
-use Spatie\Activitylog\Traits\LogsActivity;   // <--- MUST be imported
-use Spatie\Activitylog\LogOptions; 
 class FichierJoint extends Model
 {
     use HasFactory;
-    use LogsActivity;
 
     /**
      * The table associated with the model.
@@ -108,17 +105,5 @@ class FichierJoint extends Model
 
         return null; // Return null if file doesn't exist
     }
-    public function getActivitylogOptions(): LogOptions
-    {
-        return LogOptions::defaults()
-            ->logFillable()
-            ->logOnlyDirty()
-            ->dontSubmitEmptyLogs()
-
-            // ---> THIS LINE IS WHERE YOU STORE THE ACTION DESCRIPTION <---
-            ->setDescriptionForEvent(fn(string $eventName) => $eventName)
-            // $eventName will automatically be 'created', 'updated', or 'deleted'
-
-            ->useLogName('fichierjoint');
-    }
+   
 }

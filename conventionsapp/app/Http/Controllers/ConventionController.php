@@ -8,6 +8,8 @@ use App\Models\Programme;
 use App\Models\Projet; // Ensure Projet model is imported
 use App\Models\Document;
 use App\Models\ConvPart;
+use App\Models\VersementCP;
+
 use App\Models\Partenaire;
 use Illuminate\Http\JsonResponse;
 
@@ -99,7 +101,7 @@ class ConventionController extends Controller
         try {
             // Get ConvPart records for this convention, eager load the Partenaire
             $convParts = $convention->convParts()
-                           ->with('partenaire:Id,Description') // Adjust field if partner code needed
+                           ->with('partenaire:Id,Code,Description,Description_Arr') // Adjust field if partner code needed
                            ->whereHas('partenaire') // Ensure partner exists
                            ->get();
 
@@ -108,12 +110,23 @@ class ConventionController extends Controller
 
             // Map unique partners to the { value, label } format
             $options = $uniquePartners->map(function ($partenaire) {
-                return [
-                    'value' => $partenaire->Id, // Partner ID
-                    'label' => $partenaire->Description ?: ('Partenaire ID: ' . $partenaire->Id), // Partner Description or fallback
-                ];
-            })->sortBy('label')->values(); // Sort alphabetically and re-index
+                if (!$partenaire) return null; // Extra safety check
 
+                // Construct the label
+                $label = $partenaire->Description ?: ($partenaire->Description_Arr ?: ('Partenaire ID: ' . $partenaire->Id));
+                // Prepend Code if it exists
+                if ($partenaire->Code) {
+                    $label = $partenaire->Code . ' - ' . $label;
+                }
+
+                return [
+                    'value' => $partenaire->Id, // Use 'value' key for react-select
+                    'label' => $label,         // Use 'label' key for react-select
+                ];
+            })
+            ->filter() // Remove any nulls from mapping failure
+            ->sortBy('label') // Sort by the constructed label
+            ->values(); // <<< ADD ->values() HERE TO GET A SIMPLE ARRAY
             Log::info("API: Returning " . $options->count() . " unique Partenaire options for Convention {$conventionId}.");
             return response()->json($options, 200); // Return simple array
 
@@ -157,7 +170,7 @@ class ConventionController extends Controller
                 'objectifs' => 'required|string',
                 'localisation' => 'required|string',
                 'maitre_ouvrage' => 'required|string',
-                'partenaire' => 'required|string',
+                'partenaire' => 'nullable|string',
                 'cout_global' => 'required|numeric|min:0',
                 'cout_cr' => 'required|numeric|min:0',
                 'statut' => 'required|string',
@@ -406,7 +419,7 @@ class ConventionController extends Controller
                         // 1. Eager load the 'partenaire' relation FOR EACH commitment
                         //    Select only necessary columns for efficiency
                         //    (Assumes 'partenaire' relationship exists in ConvPart model)
-                        ->with('partenaire:Id,Description')
+                        ->with('partenaire:Id,Description,Description_Arr')
 
                         // 2. Calculate the sum of 'montant_verse' from related 'versements'
                         //    (Assumes 'versements' relationship exists in ConvPart model)
@@ -427,8 +440,14 @@ class ConventionController extends Controller
                     $commitmentData = [];
 
                     // 1. Create 'label' from nested partner description
-                    $commitmentData['label'] = $commitment['partenaire']['Description'] ?? 'Partenaire inconnu';
+                    if($commitment['partenaire']['Description_Arr']){
+                        $commitmentData['label'] = $commitment['partenaire']['Description_Arr'] ;
 
+                    }
+                    else{
+                        $commitmentData['label'] = $commitment['partenaire']['Description'] ;
+
+                    }
                     // 2. Add the calculated sum (using the alias 'Montant_Verse')
                     //    Default to 0.00 if somehow null (withSum usually returns 0 or a number string)
                     $commitmentData['Montant_Verse'] = $commitment['Montant_Verse'] ?? '0.00';
@@ -482,110 +501,176 @@ class ConventionController extends Controller
      * Update the specified convention.
      * POST /api/conventions/{id} (with _method=PUT)
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, string $id): JsonResponse // Use string for ID consistency
     {
-        Log::info("Requête MAJ reçue pour ID {$id} (fichiers optionnels)...");
-        Log::debug('Données brutes MAJ:', $request->all());
+        Log::info("Requête MAJ reçue pour Convention ID {$id}...");
+        Log::debug('Données brutes MAJ (convention):', $request->all());
 
-        $convention = Convention::find($id);
-        if (!$convention) { Log::error("Convention non trouvée pour MAJ. ID: {$id}"); return response()->json(['message' => 'Convention non trouvée.'], 404); }
+        // --- Find Existing Convention First ---
+        try {
+            $convention = Convention::findOrFail($id);
+        } catch (ModelNotFoundException $e) {
+            Log::error("Convention non trouvée pour MAJ. ID: {$id}");
+            return response()->json(['message' => 'Convention non trouvée.'], 404);
+        }
 
+        // --- Decode Inputs ---
         $partnerCommitmentsInput = json_decode($request->input('partner_commitments', '[]'), true);
         if (json_last_error() !== JSON_ERROR_NONE) { Log::error('Échec décodage JSON engagements (update).'); return response()->json(['message' => 'Format JSON engagements invalide.'], 400); }
 
         $documentIdsToDeleteInput = json_decode($request->input('deleted_document_ids', '[]'), true);
         if (json_last_error() !== JSON_ERROR_NONE || !is_array($documentIdsToDeleteInput)) { Log::error('Échec décodage JSON IDs suppression (update).'); return response()->json(['message' => 'Format JSON IDs suppression invalide.'], 400); }
 
-        try {
-            $validatedData = $request->validate([
-                'code' => ['required','integer', Rule::unique('convention', 'code')->ignore($convention->id)],
-                'classification_prov' => 'required|string',
-                'categorie' => 'required|string',
-                'intitule' => 'required|string',
-                'reference' => 'required|string',
-                'annee_convention' => 'required|integer',
-                'observations' => 'nullable|string|max:20000', // <<< ADDED Validation
+        // --- Validation Rules ---
+        $validationRules = [
+            // Convention fields (ensure unique 'code' ignores current convention)
+            'code' => ['required','integer', Rule::unique('convention', 'code')->ignore($convention->id)],
+            'classification_prov' => 'required|string',
+            'categorie' => 'required|string',
+            'intitule' => 'required|string',
+            'reference' => 'required|string',
+            'annee_convention' => 'required|integer|digits:4',
+            'observations' => 'nullable|string|max:20000',
+            'objet' => 'required|string',
+            'objectifs' => 'required|string',
+            'localisation' => 'required|string', // String of province IDs separated by ';'
+            'maitre_ouvrage' => 'required|string',
+            'partenaire' => 'nullable|string',
+            'cout_global' => 'required|numeric|min:0',
+            'cout_cr' => 'required|numeric|min:0',
+            'statut' => 'required|string',
+            'operationalisation' => 'required|string',
+            'id_programme' => 'required|integer|exists:programme,Id',
+            'id_projet' => 'nullable|integer|exists:projet,ID_Projet',
+            'groupe' => 'required|integer',
+            'rang' => 'nullable|string',
 
-                'objet' => 'required|string',
-                'objectifs' => 'required|string',
-                'localisation' => 'required|string',
-                'maitre_ouvrage' => 'required|string',
-                'partenaire' => 'required|string',
-                'cout_global' => 'required|numeric',
-                'cout_cr' => 'required|numeric',
-                'statut' => 'required|string',
-                'operationalisation' => 'required|string',
-                'id_programme' => 'required|integer|exists:programme,Id',
-                'id_projet' => 'nullable|integer|exists:projet,ID_Projet',
-                'groupe' => 'required|integer',
-                'rang' => 'nullable|string',
-                'fichiers' => 'nullable|array', // New files optional on update
-                'fichiers.*' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,xls,xlsx', // Validate IF provided
-                'partner_commitments' => ['required', 'string'],
-                'deleted_document_ids' => 'nullable|string',
-            ], [
-                 'required' => 'Le champ :attribute est obligatoire.',
-                 'integer'  => 'Le champ :attribute doit être un nombre entier.',
-                 'numeric'  => 'Le champ :attribute doit être un nombre.',
-                 'exists'   => 'La valeur sélectionnée pour :attribute est invalide.',
-                 'unique'   => 'Ce code de convention est déjà utilisé par une autre convention.',
-                 'id_programme.exists' => 'Le programme sélectionné est invalide.',
-                 'id_projet.exists' => 'Le projet sélectionné est invalide.',
-                 'fichiers.*.file' => 'Chaque élément dans :attribute doit être un fichier valide.',
-                 'fichiers.*.mimes' => 'Type de fichier invalide pour les nouveaux fichiers.',
-                 'observations.max' => 'Les observations ne doivent pas dépasser :max caractères.',
-             ]);
-            Log::info('Validation principale réussie (update).');
-        } catch (ValidationException $e) { Log::error('Échec validation (update):', ['errors' => $e->errors()]); return response()->json(['message' => 'Données invalides.', 'errors' => $e->errors()], 422); }
+            // Files & Commitments
+            'fichiers' => 'nullable|array',
+            'fichiers.*' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,xls,xlsx|max:5120', // Max 5MB example
+            'partner_commitments' => ['required', 'string'], // Keep as string for initial validation
+            'deleted_document_ids' => 'nullable|string', // Keep as string for initial validation
 
-        // Partner commitment validation
-        if (!is_array($partnerCommitmentsInput)) { return response()->json(['message' => 'Format invalide engagements (update).'], 422); }
-        if (empty($partnerCommitmentsInput)) { return response()->json(['message' => 'Engagements requis (update).'], 422); }
+            // Confirmation flag (optional, boolean if present)
+            'confirm_delete_commitments' => 'sometimes|boolean', // <<< ADDED CONFIRMATION FLAG
+        ];
+
+        $validationMessages = [ // Add specific messages as needed
+             'required' => 'Le champ :attribute est obligatoire.',
+             'integer' => 'Le champ :attribute doit être un nombre entier.',
+             'numeric' => 'Le champ :attribute doit être un nombre.',
+             'string' => 'Le champ :attribute doit être une chaîne de caractères.',
+             'exists' => 'La valeur sélectionnée pour :attribute est invalide.',
+             'unique' => 'Ce code de convention est déjà utilisé.',
+             'min' => 'Le champ :attribute doit être au moins :min.',
+             'max' => [ 'string' => 'Le champ :attribute ne doit pas dépasser :max caractères.', 'file' => 'Le fichier :attribute ne doit pas dépasser :max kilo-octets (5Mo).' ],
+             'digits' => 'Le champ :attribute doit avoir :digits chiffres.',
+             'array' => 'Le champ :attribute doit être une liste.',
+             'file' => 'Le champ :attribute doit être un fichier valide.',
+             'mimes' => 'Type de fichier invalide. Acceptés: PDF, DOC, DOCX, JPG, PNG, XLS, XLSX.',
+             'id_programme.exists' => 'Le programme sélectionné est invalide.',
+             'id_projet.exists' => 'Le projet sélectionné est invalide.',
+             'partner_commitments.required' => 'Les engagements des partenaires sont requis.',
+             'confirm_delete_commitments.boolean' => 'La confirmation doit être vraie ou fausse.',
+             'observations.max' => 'Les observations ne doivent pas dépasser :max caractères.',
+         ];
+
+        // --- Perform Validation ---
+        $validator = Validator::make($request->all(), $validationRules, $validationMessages);
+        if ($validator->fails()) {
+            Log::error('Échec validation principale (Convention update):', ['errors' => $validator->errors()]);
+            return response()->json(['message' => 'Données invalides.', 'errors' => $validator->errors()], 422);
+        }
+        $validatedData = $validator->validated();
+        $confirmDeleteCommitments = $validatedData['confirm_delete_commitments'] ?? false; // Get confirmation flag
+
+
+        // --- Detailed Partner Commitment Validation ---
+        if (!is_array($partnerCommitmentsInput)) { return response()->json(['message' => 'Format invalide pour les engagements partenaires (doit être une liste).'], 422); }
+        // REMOVED check for empty array - allow removing all partners
+        // if (empty($partnerCommitmentsInput)) { return response()->json(['message' => 'Au moins un engagement partenaire est requis.'], 422); }
+
+        Log::info('Validation détaillée engagements partenaires (update)...');
         foreach ($partnerCommitmentsInput as $index => $commitment) {
-            if (!is_array($commitment) || !isset($commitment['Id_Partenaire'], $commitment['Montant_Convenu'], $commitment['is_signatory'])) { Log::error("Update: Engagement #".($index + 1)." manque clés."); return response()->json(['message' => "Données manquantes engagement #" . ($index + 1) . "."], 422); }
+            // Validate structure and types
+            if (!is_array($commitment)) { return response()->json(['message' => "Format invalide pour l'engagement #".($index+1)."."], 422); }
+
             $commitmentValidator = Validator::make($commitment, [
-                'Id_Partenaire' => 'required|integer|exists:partenaire,Id', 'Montant_Convenu' => 'required|numeric|min:0', 'is_signatory' => 'required|boolean',
-                'date_signature' => [ Rule::requiredIf(function () use ($commitment) { return ($commitment['is_signatory'] ?? false) && !empty($commitment['date_signature']); }), 'nullable', 'date_format:Y-m-d' ],
+                // <<< ADDED: Validate optional Id_CP for existing commitments >>>
+                'id_cp' => ['sometimes', 'required', 'integer', Rule::exists('convention_partenaire', 'Id_CP')], // Expect 'id_cp' from frontend
+                'Id_Partenaire' => 'required|integer|exists:partenaire,Id',
+                'Montant_Convenu' => 'required|numeric|min:0',
+                'is_signatory' => 'required|boolean',
+                'date_signature' => [ Rule::requiredIf(function () use ($commitment) { return ($commitment['is_signatory'] ?? false); }), 'nullable', 'date_format:Y-m-d' ],
                 'details_signature' => ['nullable', 'string', 'max:1000'],
-             ], [ /* French Messages */ ]);
-             if ($commitmentValidator->fails()) { $partnerIdLog = $commitment['Id_Partenaire'] ?? 'Inconnu'; Log::error("Update: Échec validation engagement #".($index + 1).".", ['errors' => $commitmentValidator->errors()]); return response()->json(['message' => "Erreur validation engagement #" . ($index + 1) . ".", 'errors' => $commitmentValidator->errors()], 422); }
+            ], [ // Add specific messages
+                'id_cp.required' => "L'identifiant interne (ID CP) est manquant pour un engagement existant.",
+                'id_cp.integer' => "L'identifiant interne (ID CP) doit être un nombre.",
+                'id_cp.exists' => "L'engagement partenaire avec l'ID CP fourni n'existe pas ou n'appartient pas à cette convention.", // Refine check later if needed
+                'Id_Partenaire.required' => "Partenaire requis (engagement #".($index + 1).").",
+                'Id_Partenaire.exists' => "Partenaire invalide (engagement #".($index + 1).").",
+                'Montant_Convenu.*' => "Montant invalide (engagement #".($index + 1).").", // Simplified message
+                'is_signatory.*' => "Statut signataire invalide (engagement #".($index + 1).").",
+                'date_signature.required_if' => "Date signature requise si signataire (engagement #".($index + 1).").",
+                'date_signature.date_format' => "Format date signature invalide (AAAA-MM-JJ) (engagement #".($index + 1).").",
+            ]);
+
+            if ($commitmentValidator->fails()) {
+                 Log::error("Update: Échec validation engagement #".($index + 1).".", ['errors' => $commitmentValidator->errors()]);
+                 return response()->json(['message' => "Erreur validation engagement #" . ($index + 1) . ".", 'errors' => $commitmentValidator->errors()], 422);
+            }
         }
         Log::info('Validation détaillée engagements partenaires (update) OK.');
 
-        // Document ID validation
+
+        // --- Document ID Validation ---
         if (!empty($documentIdsToDeleteInput)) {
-             $validDocIds = Document::where('Id_Conv', $convention->id)->whereIn('Id_Doc', $documentIdsToDeleteInput)->pluck('Id_Doc')->all();
-             if (count($validDocIds) !== count($documentIdsToDeleteInput)) { $invalidIds = array_diff($documentIdsToDeleteInput, $validDocIds); Log::error('IDs docs invalides pour suppression (update).', ['invalid_ids' => $invalidIds]); return response()->json(['message' => 'Suppression docs invalides.', 'errors' => ['deleted_document_ids' => ['IDs invalides fournis.']]], 422); }
-             Log::info('Tous les IDs de documents à supprimer sont valides.');
+            $validDocIds = Document::where('Id_Conv', $convention->id)->whereIn('Id_Doc', $documentIdsToDeleteInput)->pluck('Id_Doc')->all();
+            if (count($validDocIds) !== count(array_unique($documentIdsToDeleteInput))) { // Check unique count
+                $invalidIds = array_diff($documentIdsToDeleteInput, $validDocIds);
+                Log::error('IDs docs invalides pour suppression (update).', ['invalid_ids' => $invalidIds]);
+                return response()->json(['message' => 'Suppression docs invalides.', 'errors' => ['deleted_document_ids' => ['IDs invalides fournis.']]], 422);
+            }
+            Log::info('Tous les IDs de documents à supprimer sont valides.');
         }
 
-        // Prepare data for update
-        $conventionUpdateData = Arr::except($validatedData, ['fichiers', 'deleted_document_ids', 'partner_commitments']);
+
+        // --- Prepare Data & Paths ---
+        $conventionUpdateData = Arr::except($validatedData, ['fichiers', 'deleted_document_ids', 'partner_commitments', 'confirm_delete_commitments']);
+        // Ensure foreign keys are present
         $conventionUpdateData['Id_Programme'] = $validatedData['id_programme'];
         $conventionUpdateData['id_projet'] = $validatedData['id_projet'] ?? null;
+        // Ensure localisation is handled (assuming it's already a string like "1;2;3")
+        $conventionUpdateData['localisation'] = $validatedData['localisation'];
 
-        $filesToDeletePhysicallyAbsolute = []; $newlyAddedDocumentInfo = [];
-        $targetDirRelative = 'uploads/conventions'; $targetDirAbsolute = public_path($targetDirRelative);
+        $filesToDeletePhysicallyAbsolute = [];
+        $newlyAddedDocumentInfo = [];
+        $targetDirRelative = 'uploads/conventions';
+        $targetDirAbsolute = public_path($targetDirRelative);
 
-        DB::beginTransaction(); Log::info('Transaction DB démarrée (update).');
+        // --- Start DB Transaction ---
+        DB::beginTransaction();
+        Log::info("Transaction DB démarrée (Convention update ID: {$id}). Confirmation fournie: " . ($confirmDeleteCommitments ? 'Oui' : 'Non'));
+
         try {
-            // Ensure directory
-            if (!File::isDirectory($targetDirAbsolute)) { if (!File::makeDirectory($targetDirAbsolute, 0775, true, true)) { throw new \Exception("Impossible créer dossier."); } }
-            if (!File::isWritable($targetDirAbsolute)) { throw new \Exception("Permissions écriture manquantes."); }
+            // --- File/Directory Checks ---
+            if (!File::isDirectory($targetDirAbsolute)) { if (!File::makeDirectory($targetDirAbsolute, 0775, true, true)) { throw new \Exception("Impossible créer dossier: {$targetDirAbsolute}"); } }
+            if (!File::isWritable($targetDirAbsolute)) { throw new \Exception("Permissions écriture manquantes pour: {$targetDirAbsolute}"); }
 
-            // Process Document Deletions
+            // --- Process Document Deletions ---
             if (!empty($documentIdsToDeleteInput)) {
                 Log::info("Traitement suppression DB Documents:", $documentIdsToDeleteInput);
-                $docsToDelete = Document::whereIn('Id_Doc', $documentIdsToDeleteInput)->get(['Id_Doc', 'file_path']);
+                $docsToDelete = Document::whereIn('Id_Doc', $documentIdsToDeleteInput)->where('Id_Conv', $convention->id)->get(['Id_Doc', 'file_path']); // Ensure they belong to this convention
                 foreach($docsToDelete as $doc) { if($doc->file_path) { $filesToDeletePhysicallyAbsolute[] = public_path($doc->file_path); } }
-                $deletedDbCount = Document::destroy($documentIdsToDeleteInput);
+                $deletedDbCount = Document::destroy($docsToDelete->pluck('Id_Doc')->all()); // Use the fetched IDs
                 Log::info("Supprimé {$deletedDbCount} enregistrement(s) Document DB.");
             }
 
-            // Process NEW File Uploads
+            // --- Process NEW File Uploads ---
             if (!empty($validatedData['fichiers']) && is_array($validatedData['fichiers'])) {
                 Log::info('Traitement nouveaux fichiers (update)...');
                 foreach ($validatedData['fichiers'] as $index => $file) {
+                    // ... (file handling logic remains the same as your original store/update) ...
                      if ($file instanceof \Illuminate\Http\UploadedFile && $file->isValid()) {
                          $originalName = $file->getClientOriginalName();
                          $mimeType = $file->getClientMimeType() ?: 'application/octet-stream'; $size = $file->getSize();
@@ -603,33 +688,102 @@ class ConventionController extends Controller
                 }
             } else { Log::info('Aucun nouveau fichier (update).'); }
 
-            // Update Convention Record
+
+            // --- Update Convention Record ---
             Log::info('MAJ enregistrement Convention...');
             $convention->update($conventionUpdateData);
             Log::info("Convention MAJ: ID {$convention->id}");
 
-            // Sync Partner Commitments
-            Log::info("Sync engagements partenaires...");
-            $convention->convParts()->delete();
-            if (!empty($partnerCommitmentsInput)) {
-                foreach ($partnerCommitmentsInput as $commitment) {
-                    if (!isset($commitment['Id_Partenaire'], $commitment['Montant_Convenu'], $commitment['is_signatory'])) continue;
-                     ConvPart::create([
-                         'Id_Convention' => $convention->id,
-                         'Id_Partenaire' => $commitment['Id_Partenaire'],
-                         'Montant_Convenu' => $commitment['Montant_Convenu'],
-                         'is_signatory' => $commitment['is_signatory'],
-                         'date_signature' => ($commitment['is_signatory'] && !empty($commitment['date_signature'])) ? $commitment['date_signature'] : null,
-                         'details_signature' => ($commitment['is_signatory'] && !empty($commitment['details_signature'])) ? $commitment['details_signature'] : null,
-                     ]);
+
+            // --- >>> START: Smart Sync Partner Commitments (ConvPart) <<< ---
+            Log::info("Synchronisation engagements partenaires (ConvPart) pour Convention ID: {$id}");
+
+            $existingConvPartIds = $convention->convParts()->pluck('Id_CP')->toArray(); // Get current DB IDs
+            $submittedCommitmentsData = collect($partnerCommitmentsInput); // Use the decoded input
+            $submittedConvPartIds = $submittedCommitmentsData->pluck('id_cp')->filter()->unique()->toArray(); // Get IDs submitted (use 'id_cp' from frontend)
+
+            $convPartIdsToDelete = array_diff($existingConvPartIds, $submittedConvPartIds); // Existing IDs not submitted = Delete
+
+            // --- Handle Deletions ---
+            if (!empty($convPartIdsToDelete)) {
+                Log::info("ConvPart IDs potentiels à supprimer: " . implode(', ', $convPartIdsToDelete));
+
+                $versementsExistForDeleted = false;
+                // Check for associated versements ONLY IF cascade confirmation is NOT provided
+                if (!$confirmDeleteCommitments) {
+                    $versementsExistForDeleted = VersementCP::whereIn('id_CP', $convPartIdsToDelete)->exists(); // Check VersementCP table
+                    Log::info("Vérification versements pour IDs ConvPart à supprimer (sans confirmation). Trouvé: " . ($versementsExistForDeleted ? 'Oui' : 'Non'));
                 }
-                Log::info(count($partnerCommitmentsInput) . " enregistrement(s) ConvPart recréé(s) (update).");
-            } else { Log::warning("Aucun engagement partenaire fourni (update), mais requis."); }
 
-            DB::commit(); Log::info('Transaction DB validée (update).');
+                if ($versementsExistForDeleted) {
+                    // CONFLICT DETECTED
+                    DB::rollBack(); // Rollback transaction
+                    Log::warning("MAJ Convention annulée (ID: {$id}): Confirmation requise pour supprimer engagements avec versements.");
 
-            // Delete OLD physical files
+                    // Fetch details for the frontend modal
+                    $conflictingCommitments = ConvPart::whereIn('Id_CP', $convPartIdsToDelete)
+                                                ->with('partenaire:Id,Description') // Load partner name
+                                                ->get(['Id_CP', 'Id_Partenaire']);
+
+                     $details = $conflictingCommitments->map(function ($cp) {
+                         $partnerName = $cp->partenaire->Description ?? 'Partenaire ID '.$cp->Id_Partenaire;
+                         return "Engagement avec {$partnerName} (ID Engagement: {$cp->Id_CP})";
+                     })->toArray();
+
+                    // Return 409 Conflict
+                    return response()->json([
+                        'message' => 'Confirmation requise : La suppression de certains engagements entraînera la suppression définitive de leurs versements associés.',
+                        'requires_confirmation' => true, // Flag for frontend
+                        'details' => $details
+                    ], 409); // HTTP 409 Conflict
+                } else {
+                    // OK TO DELETE
+                    Log::info("Poursuite suppression ConvPart IDs: " . implode(', ', $convPartIdsToDelete) . ". Confirmation: " . ($confirmDeleteCommitments ? 'fournie' : 'non requise'));
+                    // Perform the delete. Versements might cascade delete depending on DB constraints.
+                    $deletedCount = ConvPart::whereIn('Id_CP', $convPartIdsToDelete)->delete();
+                    Log::info("Supprimé {$deletedCount} enregistrements ConvPart.");
+                }
+            } else {
+                 Log::info("Aucun enregistrement ConvPart marqué pour suppression.");
+            }
+
+            // --- Handle Updates and Creates ---
+            Log::info("Traitement MAJ/Création pour " . $submittedCommitmentsData->count() . " engagements soumis.");
+            foreach ($submittedCommitmentsData as $commitmentData) {
+                $dataToSync = [
+                    // Fields to update or create with
+                    'Montant_Convenu'   => $commitmentData['Montant_Convenu'],
+                    'is_signatory'      => $commitmentData['is_signatory'],
+                    'date_signature'    => ($commitmentData['is_signatory'] && !empty($commitmentData['date_signature'])) ? $commitmentData['date_signature'] : null,
+                    'details_signature' => ($commitmentData['is_signatory'] && !empty($commitmentData['details_signature'])) ? $commitmentData['details_signature'] : null,
+                    // Include 'avenant_id' if it's part of the commitment data and needs syncing
+                    // 'avenant_id' => $commitmentData['avenant_id'] ?? null,
+                ];
+
+                // Use updateOrCreate:
+                // 1st array: Attributes to find the record by (Convention + Partner)
+                // 2nd array: Attributes to update the found record with, or create a new record with if not found
+                $convPart = ConvPart::updateOrCreate(
+                    [
+                        'Id_Convention' => $convention->id,
+                        'Id_Partenaire' => $commitmentData['Id_Partenaire'], // Partner ID is always required
+                    ],
+                    $dataToSync // The values to set/update
+                );
+                 Log::debug("Synchronisé ConvPart ID: {$convPart->Id_CP} pour Partenaire ID: {$commitmentData['Id_Partenaire']}. Était existant: " . $convPart->wasRecentlyCreated ? 'Non' : 'Oui');
+            }
+            Log::info("Synchronisation ConvPart terminée.");
+
+            // --- <<< END: Smart Sync Partner Commitments >>> ---
+
+
+            // --- Commit Transaction ---
+            DB::commit();
+            Log::info('Transaction DB validée (Convention update).');
+
+            // --- Delete OLD physical files ---
             if (!empty($filesToDeletePhysicallyAbsolute)) {
+                // ... (physical file deletion logic remains the same) ...
                 Log::info("Tentative suppression " . count($filesToDeletePhysicallyAbsolute) . " ancien(s) fichier(s)...");
                 foreach($filesToDeletePhysicallyAbsolute as $absolutePath) {
                      try {
@@ -639,41 +793,63 @@ class ConventionController extends Controller
                          } else { Log::warning("Chemin fichier physique non trouvé pour suppression: '{$absolutePath}'"); }
                      } catch (\Exception $fsEx) { Log::error("Erreur suppression fichier physique: {$absolutePath}", ['exception' => $fsEx]); }
                  }
-             }
+            }
 
-            // Return Success Response
-            $updatedConvention = $convention->fresh()->load(['programme', 'projet', 'documents', 'convParts.partenaire']);
+            // --- Return Success Response ---
+            // Reload relationships to get the *current* state after sync
+            $updatedConvention = $convention->fresh()->load([
+                'programme', 'projet', 'documents',
+                'convParts' => function ($q) { $q->with('partenaire:Id,Description,Description_Arr')->withSum('versements as Montant_Verse', 'montant_verse'); } // Reload synced data
+            ]);
             $appBaseUrl = rtrim(config('app.url', 'http://localhost'), '/');
             $updatedConventionData = $updatedConvention->toArray();
-            // Format response data
+
+            // Format response data (same transformation as in show method)
             $updatedConventionData['documents'] = $updatedConvention->documents->map(function ($doc) use ($appBaseUrl) { $docArray = $doc->toArray(); $docArray['url'] = $doc->file_path ? "{$appBaseUrl}/" . ltrim($doc->file_path, '/') : null; return $docArray; })->all();
-            $updatedConventionData['partner_commitments'] = $updatedConvention->convParts->map(function (ConvPart $convPart) { $signatureDate = $convPart->date_signature ? $convPart->date_signature->format('Y-m-d') : null; return [ 'Id_Partenaire' => $convPart->Id_Partenaire, 'label' => optional($convPart->partenaire)->Description ?? "Partenaire ID {$convPart->Id_Partenaire}", 'Montant_Convenu' => $convPart->Montant_Convenu, 'is_signatory' => (bool) $convPart->is_signatory, 'date_signature' => $signatureDate, 'details_signature' => $convPart->details_signature, ]; })->values()->all();
+             // Map 'conv_parts' to 'partner_commitments' for frontend
+            if (isset($updatedConventionData['conv_parts']) && is_array($updatedConventionData['conv_parts'])) {
+                $updatedConventionData['partner_commitments'] = array_map(function ($commitment) {
+                     $commitmentData = [];
+                     $commitmentData['label'] = $commitment['partenaire']['Description'] ?? ($commitment['partenaire']['Description_Arr'] ?? 'Partenaire inconnu');
+                     if($commitment['partenaire']['Code'] ?? null) { $commitmentData['label'] = $commitment['partenaire']['Code'] . ' - ' . $commitmentData['label']; }
+                     $commitmentData['Montant_Verse'] = $commitment['Montant_Verse'] ?? '0.00';
+                     $commitmentData['Montant_Convenu'] = $commitment['Montant_Convenu'] ?? null;
+                     $commitmentData['is_signatory'] = (bool)($commitment['is_signatory'] ?? false);
+                     $commitmentData['Id_Partenaire'] = $commitment['Id_Partenaire'] ?? null;
+                     $commitmentData['date_signature'] = $commitment['date_signature'] ?? null;
+                     $commitmentData['details_signature'] = $commitment['details_signature'] ?? null;
+                     $commitmentData['Id_CP'] = $commitment['Id_CP'] ?? null; // <<< Include Id_CP in response
+                     return $commitmentData;
+                 }, $updatedConventionData['conv_parts']);
+                 unset($updatedConventionData['conv_parts']);
+             } else { $updatedConventionData['partner_commitments'] = []; }
 
             return response()->json(['success' => 'Convention Modifiée!', 'message' => 'Convention Modifiée!', 'convention' => $updatedConventionData], 200);
 
-        // Catch Blocks
+        // --- Catch Blocks ---
         } catch (\Illuminate\Database\QueryException $qe) {
-            DB::rollBack(); Log::error('ERREUR DB (update):', ['id' => $id, 'message' => $qe->getMessage(), 'sql' => $qe->getSql()]);
-            foreach($newlyAddedDocumentInfo as $docInfo) { // Cleanup files
-                 $absolutePath = public_path($docInfo['absolute']); if (!empty($docInfo['absolute']) && File::exists($absolutePath)) { try { File::delete($absolutePath); Log::warning("Fichier ajouté annulé (rollback DB MAJ): {$docInfo['absolute']}"); } catch (\Exception $ex) { Log::error("Échec suppression fichier {$docInfo['absolute']} (rollback DB MAJ): " . $ex->getMessage()); } }
-            }
-            return response()->json(["message" => "Erreur DB lors modification."], 500);
+            DB::rollBack(); Log::error('ERREUR DB (Convention update):', ['id' => $id, 'message' => $qe->getMessage(), 'sql' => $qe->getSql()]);
+            // Cleanup newly added files on DB error
+            foreach($newlyAddedDocumentInfo as $docInfo) { $absolutePath = $docInfo['absolute']; if (!empty($absolutePath) && File::exists($absolutePath)) { try { File::delete($absolutePath); Log::warning("Fichier ajouté annulé (rollback DB MAJ Conv): {$absolutePath}"); } catch (\Exception $ex) { Log::error("Échec suppression fichier {$absolutePath} (rollback DB MAJ Conv): " . $ex->getMessage()); } } }
+            // Check for specific constraint violations if needed
+             if (str_contains($qe->getMessage(), '1451')) { // Foreign key constraint
+                  return response()->json(['message' => 'Erreur de base de données : Impossible de mettre à jour en raison de contraintes de clé étrangère.'], 500);
+             }
+             return response()->json(["message" => "Erreur Base de Données lors modification."], 500);
          }
         catch (\Exception $e) {
-            DB::rollBack(); Log::error('ERREUR GÉNÉRALE (update):', ['id' => $id, 'message' => $e->getMessage()]);
-             foreach($newlyAddedDocumentInfo as $docInfo) { // Cleanup files
-                 $absolutePath = public_path($docInfo['absolute']); if (!empty($docInfo['absolute']) && File::exists($absolutePath)) { try { File::delete($absolutePath); Log::warning("Fichier ajouté annulé (rollback Erreur MAJ): {$docInfo['absolute']}"); } catch (\Exception $ex) { Log::error("Échec suppression fichier {$docInfo['absolute']} (rollback Erreur MAJ): " . $ex->getMessage()); } }
-             }
-            $statusCode = ($e instanceof ValidationException) ? 422 : 500;
-             return response()->json(['message' => 'Échec modification.', "error_details" => $e->getMessage(), "errors" => $e instanceof ValidationException ? $e->errors() : null ], $statusCode);
+            DB::rollBack(); Log::error('ERREUR GÉNÉRALE (Convention update):', ['id' => $id, 'message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            // Cleanup newly added files on general error
+             foreach($newlyAddedDocumentInfo as $docInfo) { $absolutePath = $docInfo['absolute']; if (!empty($absolutePath) && File::exists($absolutePath)) { try { File::delete($absolutePath); Log::warning("Fichier ajouté annulé (rollback Erreur MAJ Conv): {$absolutePath}"); } catch (\Exception $ex) { Log::error("Échec suppression fichier {$absolutePath} (rollback Erreur MAJ Conv): " . $ex->getMessage()); } } }
+
+            $statusCode = ($e instanceof ValidationException) ? 422 : 500; // Already handled validation exceptions above, but keep for safety
+             return response()->json(['message' => 'Échec modification.', "error_details" => $e->getMessage() ], $statusCode);
          }
     }
 
-    /**
-     * Remove the specified convention.
-     * DELETE /api/conventions/{id}
-     */
-    public function destroy(string $id)
+
+    // ... destroy method remains the same ...
+     public function destroy(string $id)
     {
         Log::info("Tentative suppression ID: {$id}...");
         $conventionToDelete = Convention::with(['documents', 'convParts'])->find($id);
@@ -687,14 +863,18 @@ class ConventionController extends Controller
 
         DB::beginTransaction(); Log::info("Transaction DB (destroy) ID: {$id}");
         try {
-            $conventionToDelete->convParts()->delete(); Log::info("ConvParts supprimés.");
+            // You might need to check for versements before deleting convParts here too,
+            // depending on your database constraints (ON DELETE CASCADE vs RESTRICT)
+             $conventionToDelete->convParts()->delete(); Log::info("ConvParts supprimés.");
+
             $conventionToDelete->documents()->delete(); Log::info("Documents supprimés.");
             $conventionToDelete->delete(); Log::info("Convention supprimée.");
             DB::commit(); Log::info("Transaction DB validée (destroy).");
 
             // Delete physical files AFTER commit
             if (!empty($filesToDeletePhysicallyAbsolute)) {
-                Log::info("Tentative suppression " . count($filesToDeletePhysicallyAbsolute) . " fichier(s) physique(s)...");
+                // ... (physical file deletion logic) ...
+                 Log::info("Tentative suppression " . count($filesToDeletePhysicallyAbsolute) . " fichier(s) physique(s)...");
                  foreach ($filesToDeletePhysicallyAbsolute as $absolutePath) {
                      try {
                          if (File::exists($absolutePath)) {
@@ -705,13 +885,27 @@ class ConventionController extends Controller
                  }
              } else { Log::info("Aucun fichier physique à supprimer."); }
 
+
             return response()->json(['success' => 'Convention Supprimée!', 'message' => 'Suppression réussie.'], 200);
 
+        } catch (\Illuminate\Database\QueryException $qe) { // Catch DB errors specifically
+             DB::rollBack();
+             Log::error('Erreur DB durant la suppression (Convention):', ['id' => $id, 'message' => $qe->getMessage()]);
+             if (str_contains($qe->getMessage(), '1451')) { // Foreign key constraint
+                 return response()->json(['message' => 'Impossible de supprimer cette convention car elle est référencée ailleurs (projets, etc.).'], 409); // 409 Conflict
+             }
+             return response()->json(['message' => 'Erreur Base de Données lors de la suppression.'], 500);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Erreur durant la suppression:', ['id' => $id, 'message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('Erreur durant la suppression (Convention):', ['id' => $id, 'message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json(['message' => 'Erreur lors de la suppression.', 'error_details' => $e->getMessage()], 500);
         }
     }
 
+
+    /**
+     * Remove the specified convention.
+     * DELETE /api/conventions/{id}
+     */
+  
 } // End of Controller Class

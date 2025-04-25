@@ -144,7 +144,18 @@ class VersementCPController extends Controller
         // ... Your existing show method remains unchanged ...
          Log::info("API: Récupération versement ID: {$versement->id}");
         try {
-             $versement->load([ 'convPart.convention:id,code,intitule', 'convPart.partenaire:Id,Description,Description_Arr' ]);
+            $versement->load([
+                'convPart' => function ($query) { // Load the direct commitment link
+                    $query->with([
+                        'convention:id,code,intitule', // Load convention details (ensure convention_id is loaded if needed)
+                        'partenaire:Id,Code,Description,Description_Arr'  // Load partner details
+                    ]);
+                }
+            ]);
+            if ($versement->convPart) {
+                $versement->convPart->convention_id = $versement->convPart->convention->id ?? null;
+                $versement->convPart->partenaire_id = $versement->convPart->partenaire->Id ?? null;
+             }
              return response()->json(['versement' => $versement], 200);
         } catch (\Exception $e) {
              Log::error("API: Erreur récupération versement ID {$versement->id}:", [ 'message' => $e->getMessage(), 'trace' => $e->getTraceAsString() ]);

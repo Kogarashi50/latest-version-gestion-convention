@@ -67,7 +67,7 @@ const VersementVisualisation = ({ itemId, onClose, baseApiUrl }) => {
     const partenaire = versement?.conv_part?.partenaire;
     //const conventionCode = convention?.code || '';
     const conventionIntitule = convention?.intitule || '(Sans intitulé)';
-    const partenaireDescription = partenaire?.Description || 'N/A';
+    const partenaireDescription = partenaire?.Description || partenaire?.Description_Arr;
     const montantConvenu = versement?.conv_part?.Montant_Convenu;
 
     const cardTitle = `Versement: ${versement?.reference_paiement || `#${itemId}`}`;
