@@ -17,8 +17,8 @@ const selectStyles = {
 
 // Placeholder CSS classes (Define these in your CSS file based on ConventionForm styles)
 const FORM_CONTAINER_CLASS = "p-3 p-md-4"; // Base padding
-const FORM_CONTROL_CLASS = "p-2 mt-1 mb-3 rounded-pill shadow-sm bg-light border-0"; // Pill style for inputs
-const FORM_TEXTAREA_CLASS = "p-2 mt-1 mb-3 rounded shadow-sm bg-light border-0"; // Slightly different for textarea
+const FORM_CONTROL_CLASS = "p-2 mt-1 mb-3 rounded-pill shadow-sm bg-light "; // Pill style for inputs
+const FORM_TEXTAREA_CLASS = "p-2 mt-1 mb-3 rounded-4 shadow-sm bg-light "; // Slightly different for textarea
 const FORM_ACTIONS_ROW_CLASS = "mt-4 pt-2 justify-content-center";
 const FORM_CANCEL_BUTTON_CLASS = "btn px-5 rounded-5 py-1 bg-danger border-0"; // Match cancel button style
 const FORM_SUBMIT_BUTTON_CLASS = "btn rounded-5 px-5 py-1 align-items-center d-flex justify-content-evenly bg-primary border-0"; // Match submit button style

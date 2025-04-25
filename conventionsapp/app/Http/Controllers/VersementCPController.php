@@ -60,7 +60,7 @@ class VersementCPController extends Controller
             'id_CP'              => ['required', 'integer', Rule::exists('convention_partenaire', 'Id_CP')],
             'date_versement'     => 'required|date_format:Y-m-d',
             'montant_verse'      => ['required', 'numeric', 'min:0.01', 'regex:/^\d+(\.\d{1,2})?$/'], // Must be positive
-            'moyen_paiement'     => 'required|string|max:50',
+            'moyen_paiement'     => 'nullable|string|max:50',
             'reference_paiement' => 'nullable|string|max:100',
             'commentaire'        => 'nullable|string|max:65535',
         ], [ /* ... messages ... */ ]);
@@ -174,7 +174,7 @@ class VersementCPController extends Controller
              // Keep 'sometimes' as not all fields might be updated at once
             'date_versement'     => 'sometimes|required|date_format:Y-m-d',
             'montant_verse'      => ['sometimes','required','numeric','min:0.01','regex:/^\d+(\.\d{1,2})?$/'], // Require positive if provided
-            'moyen_paiement'     => 'sometimes|required|string|max:50',
+            'moyen_paiement'     => 'sometimes|nullable|string|max:50',
             'reference_paiement' => 'nullable|string|max:100',
             'commentaire'        => 'nullable|string|max:65535',
             // NOTE: We don't validate 'id_CP' here as we are not changing the relationship

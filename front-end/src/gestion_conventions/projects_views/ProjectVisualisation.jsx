@@ -114,8 +114,8 @@ const ProjetVisualisation = ({ itemId, onClose, baseApiUrl }) => {
 
         projetData.engagements_financiers.forEach(eng => {
             // Use partenaire.Id if available (from eager loading), fallback to partenaire_id
-            const partnerId = eng.partenaire?.Id ?? eng.partenaire_id;
-            const partnerName = eng.partenaire?.Description ?? `Partenaire ID: ${partnerId}`;
+            const partnerId = eng.partenaire?.Id || eng.partenaire_id;
+            const partnerName = eng.partenaire?.Description || eng.partenaire?.Description_Arr||`Partenaire ID: ${partnerId}`;
 
             if (!partnerId) {
                 console.warn("Skipping engagement with missing partner ID:", eng);

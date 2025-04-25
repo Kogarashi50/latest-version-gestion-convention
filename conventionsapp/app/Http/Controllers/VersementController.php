@@ -113,7 +113,7 @@ class VersementController extends Controller
             'engagement_id' => 'required|integer|exists:engagements_financiers,id',
             'date_versement' => 'required|date_format:Y-m-d',
             'montant_verse' => 'required|numeric|min:0.01', // Must be positive
-            'moyen_paiement' => 'required|string|max:50',
+            'moyen_paiement' => 'nullable|string|max:50',
             'reference_paiement' => 'nullable|string|max:100',
             'commentaire' => 'nullable|string',
         ], [ /* Custom messages */
@@ -124,7 +124,7 @@ class VersementController extends Controller
             'montant_verse.required' => 'Le montant versé est requis.',
             'montant_verse.numeric' => 'Le montant versé doit être un nombre.',
             'montant_verse.min' => 'Le montant versé doit être positif.',
-            'moyen_paiement.required' => 'Le moyen de paiement est requis.',
+            // 'moyen_paiement.required' => 'Le moyen de paiement est requis.',
             'moyen_paiement.max' => 'Le moyen de paiement ne doit pas dépasser 50 caractères.',
             'reference_paiement.max' => 'La référence de paiement ne doit pas dépasser 100 caractères.',
          ]);
@@ -271,7 +271,7 @@ class VersementController extends Controller
              'engagement_id' => 'sometimes|required|integer|exists:engagements_financiers,id',
              'date_versement' => 'sometimes|required|date_format:Y-m-d',
              'montant_verse' => 'sometimes|required|numeric|min:0',
-             'moyen_paiement' => 'sometimes|required|string|max:50',
+             'moyen_paiement' => 'sometimes|nullable|string|max:50',
              'reference_paiement' => 'nullable|string|max:100',
              'commentaire' => 'nullable|string',
         ], [ /* Custom error messages - same as store */ ]);

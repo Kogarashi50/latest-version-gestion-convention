@@ -302,24 +302,24 @@ const AppelOffreForm = ({ itemId, onClose, onItemCreated, onItemUpdated, baseApi
                 <Form.Group as={Col} md="4" className="mb-3">
                     <Form.Label htmlFor="estimation">Estimation TTC (MAD)</Form.Label>
                     <InputGroup>
-                        <Form.Control id="estimation" className='form-control-style shadow-sm form-control-rounded-start' type="number" step="0.01" name="estimation" value={formData.estimation} onChange={handleChange} isInvalid={!!validationErrors.estimation} placeholder="Optionnel"/>
-                        <InputGroup.Text className='form-control-rounded-end'>MAD</InputGroup.Text>
+                        <Form.Control id="estimation" className='form-control-style rounded-start-pill shadow-sm form-control-rounded-start' type="number" step="0.01" name="estimation" value={formData.estimation} onChange={handleChange} isInvalid={!!validationErrors.estimation} placeholder="Optionnel"/>
+                        <InputGroup.Text className='form-control-rounded-end rounded-end-pill '>MAD</InputGroup.Text>
                         <Form.Control.Feedback type="invalid">{validationErrors.estimation?.[0]}</Form.Control.Feedback>
                     </InputGroup>
                 </Form.Group>
                  <Form.Group as={Col} md="4" className="mb-3">
                     <Form.Label htmlFor="estimation_HT">Estimation HT (MAD) <span className="text-danger">*</span></Form.Label>
                      <InputGroup>
-                        <Form.Control id="estimation_HT" className='form-control-style shadow-sm form-control-rounded-start' type="number" step="0.01" name="estimation_HT" value={formData.estimation_HT} onChange={handleChange} isInvalid={!!validationErrors.estimation_HT} placeholder="0.00"/>
-                        <InputGroup.Text className='form-control-rounded-end'>MAD</InputGroup.Text>
+                        <Form.Control id="estimation_HT" className='form-control-style shadow-sm  rounded-start-pill form-control-rounded-start' type="number" step="0.01" name="estimation_HT" value={formData.estimation_HT} onChange={handleChange} isInvalid={!!validationErrors.estimation_HT} placeholder="0.00"/>
+                        <InputGroup.Text className='form-control-rounded-end rounded-end-pill'>MAD</InputGroup.Text>
                         <Form.Control.Feedback type="invalid">{validationErrors.estimation_HT?.[0]}</Form.Control.Feedback>
                     </InputGroup>
                 </Form.Group>
                 <Form.Group as={Col} md="4" className="mb-3">
                     <Form.Label htmlFor="montant_TVA">Montant TVA (MAD) <span className="text-danger">*</span></Form.Label>
                      <InputGroup>
-                        <Form.Control id="montant_TVA" className='form-control-style shadow-sm form-control-rounded-start' type="number" step="0.01" name="montant_TVA" value={formData.montant_TVA} onChange={handleChange} isInvalid={!!validationErrors.montant_TVA} placeholder="0.00"/>
-                        <InputGroup.Text className='form-control-rounded-end'>MAD</InputGroup.Text>
+                        <Form.Control id="montant_TVA" className='form-control-style shadow-sm form-control-rounded-start rounded-start-pill ' type="number" step="0.01" name="montant_TVA" value={formData.montant_TVA} onChange={handleChange} isInvalid={!!validationErrors.montant_TVA} placeholder="0.00"/>
+                        <InputGroup.Text className='form-control-rounded-end rounded-end-pill'>MAD</InputGroup.Text>
                         <Form.Control.Feedback type="invalid">{validationErrors.montant_TVA?.[0]}</Form.Control.Feedback>
                     </InputGroup>
                 </Form.Group>

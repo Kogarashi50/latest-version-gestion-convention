@@ -194,6 +194,7 @@ const PartenaireForm = ({
                 <Form.Group as={Col} md={4} controlId="partenaireCode">
                     <Form.Label className="small mb-1">Code <span className="text-danger">*</span></Form.Label>
                     <Form.Control
+                        className='p-2 mt-1 mb-3 rounded-pill shadow-sm bg-light'
                         type="number"
                         name="Code" // <<< Name matches state key
                         value={formData.Code}
@@ -210,6 +211,7 @@ const PartenaireForm = ({
                     <Form.Label className="small mb-1">Description (Français) <span className="text-danger">*</span></Form.Label>
                     <Form.Control
                         type="text"
+                        className='p-2 mt-1 mb-3 rounded-pill shadow-sm bg-light'
                         name="Description" // <<< Name matches state key
                         value={formData.Description}
                         onChange={handleChange}
@@ -224,6 +226,7 @@ const PartenaireForm = ({
                  <Form.Group as={Col} md={12} controlId="partenaireDescriptionArr">
                     <Form.Label className="small mb-1">Description (Arabe) <span className="text-danger">*</span></Form.Label>
                     <Form.Control
+                        className='p-2 mt-1 text-right-arabic" mb-3 rounded-pill shadow-sm bg-light'
                         type="text"
                         name="Description_Arr" // <<< Name matches state key
                         value={formData.Description_Arr}
@@ -232,7 +235,6 @@ const PartenaireForm = ({
                         required // Make required as per validation change
                         size="sm"
                         dir="rtl" // Keep directionality
-                        className="text-right-arabic" // Keep custom class if needed
                     />
                     <Form.Control.Feedback type="invalid">{formErrors.Description_Arr}</Form.Control.Feedback>
                 </Form.Group>

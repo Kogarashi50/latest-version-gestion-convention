@@ -112,7 +112,7 @@ const SousProjetVisualisation = ({ itemId, onClose, baseApiUrl }) => {
                             <Card.Title as="h6" className={CARD_TITLE_CLASS}>Localisation</Card.Title>
                              <dl className={DL_CLASS}>
                                 <dt className={DT_CLASS}>Province:</dt><dd className={DD_CLASS}>{displayData(sousProjetData.province?.Description, `(ID: ${sousProjetData.Id_Province})`)}</dd>
-                                <dt className={DT_CLASS}>Commune:</dt><dd className={DD_CLASS}>{displayData(sousProjetData.commune?.Description, `(Code: ${sousProjetData.Id_Commune})`)}</dd>
+                                <dt className={DT_CLASS}>Commune:</dt><dd className={DD_CLASS}>{displayData(sousProjetData.commune?.Description,'-')}</dd>
                                 <dt className={DT_CLASS}>Localité:</dt><dd className={DD_CLASS}>{displayData(sousProjetData.Localite)}</dd>
                                 <dt className={DT_CLASS}>Centre:</dt><dd className={DD_CLASS}>{displayData(sousProjetData.Centre)}</dd>
                                 <dt className={DT_CLASS}>Site:</dt><dd className={DD_CLASS}>{displayData(sousProjetData.Site)}</dd>

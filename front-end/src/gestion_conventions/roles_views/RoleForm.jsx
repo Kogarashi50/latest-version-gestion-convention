@@ -188,16 +188,23 @@ const RoleForm = ({
     // --- Render Form (Keep existing structure and styling) ---
     return (
         // Keep existing wrapper and styling classes
-        <div className="role-form-wrapper p-0" style={{ maxHeight: 'calc(95vh - 110px)', overflowY: 'auto' }}>
+        <div className="role-form-wrapper px-3" style={{ maxHeight: 'calc(90vh - 100px)', overflowY: 'auto' }}>
             <div className="p-3 p-md-4 role-form-convention-style">
                 <Form noValidate onSubmit={handleSubmit}>
                     {/* Header */}
-                    <div className="d-flex justify-content-between align-items-center mb-4"> <h5 className="mb-0 text-dark fw-bold"> <FontAwesomeIcon icon={faShieldAlt} className="me-2 text-primary" /> {isEditing ? `Modifier` : 'Créer'} Rôle {isEditing && roleName && <span className="text-muted fw-normal ms-2">({roleName})</span>} </h5> </div>
+                    <div className="d-flex justify-content-between align-items-center mb-4"> 
+                        <h5 className="mb-0 text-dark fw-bold"> 
+                            <FontAwesomeIcon icon={faShieldAlt} className="me-2 text-primary" /> {isEditing ? `Modifier` : 'Créer'} Rôle {isEditing && roleName && <span className="text-muted fw-normal ms-2">({roleName})</span>} 
+                            </h5>
+                              <Button variant="warning" size="sm" onClick={onClose} className="btn rounded-5 px-5 py-2 bg-warning text-dark shadow-sm fw-bold" aria-label="Fermer">
+                                                Revenir a la liste
+                                            </Button>
+                                         </div>
                     {/* Alerts */}
                     {submissionStatus.error && ( <Alert variant="danger" className="d-flex align-items-center py-2 mb-3 small"> <FontAwesomeIcon icon={faExclamationTriangle} className="me-2" /> {submissionStatus.error} </Alert> )}
                     {submissionStatus.success && ( <Alert variant="success" className="d-flex align-items-center py-2 mb-3 small"> <FontAwesomeIcon icon={faCheckCircle} className="me-2" /> {submissionStatus.success} </Alert> )}
                     {/* Role Name Field */}
-                    <div className="form-section mb-4"> <Row> <Col md={6} className="mb-3"> <Form.Group controlId="roleName"> <Form.Label className="form-label-custom">Nom <span className="text-danger">*</span></Form.Label> <Form.Control type="text" name="name" value={roleName} onChange={handleNameChange} isInvalid={!!formErrors.name} required size="sm" placeholder="Nom unique" className="form-control-custom" /> <Form.Control.Feedback type="invalid">{formErrors.name}</Form.Control.Feedback> </Form.Group> </Col> </Row> </div>
+                    <div className="form-section mb-4"> <Row> <Col md={6} className="mb-3"> <Form.Group controlId="roleName"> <Form.Label className="form-label-custom">Nom <span className="text-danger">*</span></Form.Label> <Form.Control type="text" name="name" value={roleName} onChange={handleNameChange} isInvalid={!!formErrors.name} required size="sm" placeholder="Nom unique" className="form-control-custom rounded-5 shadow-sm p-2" /> <Form.Control.Feedback type="invalid">{formErrors.name}</Form.Control.Feedback> </Form.Group> </Col> </Row> </div>
                     {/* Permissions Section */}
                     <div className="form-section mb-4">
                          <div className="d-flex justify-content-between align-items-center mb-3">

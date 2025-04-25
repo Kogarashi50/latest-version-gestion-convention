@@ -142,8 +142,8 @@ const AvenantForm = ({
 
             const partenaires = Array.isArray(partRes.data?.partenaires) ? partRes.data.partenaires : [];
             const mappedPartOptions = partenaires
-                .filter(p => p?.Id !== undefined && p?.Description !== undefined)
-                .map(p => ({ value: p.Id, label: p.Description }))
+                .filter(p => p?.Id !== undefined )
+                .map(p => ({ value: p.Id, label: p.Description||p.Description_Arr }))
                 .sort((a, b) => String(a.label).localeCompare(String(b.label), undefined, { sensitivity: 'base' }));
             setPartenaireOptions(mappedPartOptions);
             console.log("Partenaire Options Loaded:", mappedPartOptions.length);
@@ -224,7 +224,7 @@ const AvenantForm = ({
                     const initialPartnerDetails = fetchedCommitments.map((commit, index) => {
                         console.log(`[Avenant Form Load] Mapping commitment #${index}:`, commit); // Log each raw commitment
                         const partnerInfo = commit.partenaire; // Get nested partner
-                        if (!partnerInfo || !partnerInfo.Id || !partnerInfo.Description) { // Check nested partner data more thoroughly
+                        if (!partnerInfo || !partnerInfo.Id || !partnerInfo.Description || !partnerInfo.Description_Arr) { // Check nested partner data more thoroughly
                             console.warn(`[Avenant Form Load] Partner info missing or incomplete for commitment #${index}:`, commit);
                             return null; // Skip if essential partner info is missing
                         }
@@ -232,7 +232,7 @@ const AvenantForm = ({
                         // Create the mapped object
                         const mappedDetail = {
                             id: commit.Id_Partenaire,
-                            label: partnerInfo.Description || `ID ${commit.Id_Partenaire}`, // Fallback label
+                            label: partnerInfo.Description ||partnerInfo.Description_Arr|| `ID ${commit.Id_Partenaire}`, // Fallback label
                             // Ensure keys match EXACTLY what's in the JSON response
                             montant: String(commit.Montant_Convenu ?? ''), // Check 'Montant_Convenu' casing
                             is_signatory: !!commit.is_signatory,           // Check 'is_signatory' casing/value (true/false or 1/0?)
@@ -285,7 +285,7 @@ const AvenantForm = ({
         if (!formData.convention_id) errors.convention_id = "Convention requise.";
         if (!formData.numero_avenant?.trim()) errors.numero_avenant = "Numéro avenant requis.";
         if (!formData.date_signature) errors.date_signature = "Date signature requise.";
-        if (!formData.objet?.trim()) errors.objet = "Objet requis.";
+        // if (!formData.objet?.trim()) errors.objet = "Objet requis.";
         if (!formData.type_modification) errors.type_modification = "Type modification requis.";
 
         if (formData.type_modification?.value === 'montant') {
@@ -652,7 +652,7 @@ const AvenantForm = ({
     const visibleExistingFichiers = existingFichiers.filter(f => !fichiersToDelete.includes(f.id));
 
     return (
-        <div className="p-3 p-md-4 avenant-form-container bg-white" style={{ borderRadius: '15px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', maxHeight: 'calc(90vh - 100px)'}}>
+        <div className="p-3 p-md-4 avenant-form-container bg-white" style={{ borderRadius: '15px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)'}}>
             {/* Header */}
             <div className="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
                  <div><h5 className="text-uppercase fw-bold text-secondary mb-1">{isEditing ? 'Modifier' : 'Ajouter un nouveau'}</h5><h2 className="mb-0 fw-bold">Avenant</h2></div>
@@ -745,12 +745,11 @@ const AvenantForm = ({
                     </Row>
                     {/* Objet */}
                      <Form.Group as={Row} className="my-2" controlId="formObjet">
-                         <Form.Label column sm={2} className="small fw-medium text-sm-end">Objet <span className="text-danger">*</span></Form.Label>
+                         <Form.Label column sm={2} className="small fw-medium text-sm-end">Objet </Form.Label>
                          <Col sm={10}>
                             <Form.Control
                                 className="p-3 rounded-3 shadow-sm bg-white border-1 rounded-5 "
                                 isInvalid={!!formErrors.objet}
-                                required
                                 as="textarea"
                                 rows={2}
                                 name="objet"

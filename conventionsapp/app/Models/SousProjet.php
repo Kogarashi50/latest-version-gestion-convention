@@ -9,6 +9,7 @@ class SousProjet extends Model
 {
     use LogsActivity;
     protected $table ='sous_projet';
+    protected $primaryKey = 'Code_Sous_Projet';
  // app/Models/SousProjet.php
 protected $fillable = [
     'Code_Sous_Projet', // Make sure this matches EXACTLY

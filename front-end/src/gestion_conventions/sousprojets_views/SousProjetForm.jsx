@@ -203,26 +203,20 @@ const SousProjetForm = ({
         // Required text fields
         if (!formData.Code_Sous_Projet?.trim()) errors.Code_Sous_Projet = "Code Sous-Projet requis.";
         if (!formData.Nom_Projet?.trim()) errors.Nom_Projet = "Nom Sous-Projet requis.";
-        if (!formData.Secteur?.trim()) errors.Secteur = "Secteur requis.";
-        if (!formData.Status?.trim()) errors.Status = "Statut requis.";
+        // if (!formData.Secteur?.trim()) errors.Secteur = "Secteur requis.";
+        // if (!formData.Status?.trim()) errors.Status = "Statut requis.";
 
         // Required Selects
         if (!formData.projetMaitre) errors.ID_Projet_Maitre = "Projet Maître requis.";
         if (!formData.province) errors.Id_Province = "Province requise.";
-        if (!formData.commune) errors.Id_Commune = "Commune requise.";
+        // if (!formData.commune) errors.Id_Commune = "Commune requise.";
 
         // Required numeric fields
         const checkRequiredNumeric = (field, name) => {
             const value = formData[field];
-            if (value === '' || value === null || value === undefined) {
-                 errors[field] = `${name} requis.`;
-            } else if (isNaN(parseFloat(value))) {
-                 errors[field] = `${name} doit être un nombre.`;
-            } else if ((field === 'Etat_Avan_Physi' || field === 'Etat_Avan_Finan') && (parseFloat(value) < 0 || parseFloat(value) > 100)) {
+            if ((field === 'Etat_Avan_Physi' || field === 'Etat_Avan_Finan') && (parseFloat(value) < 0 || parseFloat(value) > 100)) {
                  errors[field] = `${name} doit être entre 0 et 100.`;
-             } else if (field === 'Estim_Initi' && parseFloat(value) < 0) {
-                 errors[field] = `${name} ne peut pas être négatif.`;
-             }
+             } 
         };
         checkRequiredNumeric('Etat_Avan_Physi', 'Av. Physique (%)');
         checkRequiredNumeric('Etat_Avan_Finan', 'Av. Financier (%)');
@@ -445,14 +439,14 @@ const SousProjetForm = ({
                     {/* Row 3: Commune, Statut */}
                     <Row className="mb-3 g-3">
                         <Form.Group as={Col} md={6} controlId="formCommune">
-                            <Form.Label className="small mb-1 fw-medium">Commune <span className="text-danger">*</span></Form.Label>
+                            <Form.Label className="small mb-1 fw-medium">Commune </Form.Label>
                             <Select name="commune" options={communeOptions} value={formData.commune} onChange={handleCommuneChange} styles={selectStyles} placeholder={loadingOptions.communes ? "Chargement..." : "- Sélectionner Commune -"} isClearable isLoading={loadingOptions.communes} isDisabled={loadingOptions.communes} className={formErrors.Id_Commune ? 'is-invalid' : ''} aria-label="Sélectionner Commune" menuPlacement="auto" />
                             {formErrors.communes && !loadingOptions.communes && <div className="text-danger small mt-1">{formErrors.communes}</div>}
                             {formErrors.Id_Commune && <div className="invalid-feedback d-block">{formErrors.Id_Commune}</div>}
                         </Form.Group>
                         <Form.Group as={Col} md={6} controlId="formStatus">
-                            <Form.Label className="small mb-1 fw-medium">Statut <span className="text-danger">*</span></Form.Label>
-                            <Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Status} required type="text" name="Status" value={formData.Status} onChange={handleChange} size="sm" placeholder="Ex: En cours, Terminé, Planifié" />
+                            <Form.Label className="small mb-1 fw-medium">Statut</Form.Label>
+                            <Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Status} type="text" name="Status" value={formData.Status} onChange={handleChange} size="sm" placeholder="Ex: En cours, Terminé, Planifié" />
                             <Form.Control.Feedback type="invalid">{formErrors.Status}</Form.Control.Feedback>
                         </Form.Group>
                     </Row>
@@ -460,8 +454,8 @@ const SousProjetForm = ({
                      {/* Row 4: Secteur, Localite, Centre, Site */}
                      <Row className="mb-3 g-3">
                          <Form.Group as={Col} md={3} controlId="formSecteur">
-                            <Form.Label className="small mb-1 fw-medium">Secteur <span className="text-danger">*</span></Form.Label>
-                            <Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Secteur} required type="text" name="Secteur" value={formData.Secteur} onChange={handleChange} size="sm"/>
+                            <Form.Label className="small mb-1 fw-medium">Secteur </Form.Label>
+                            <Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Secteur} type="text" name="Secteur" value={formData.Secteur} onChange={handleChange} size="sm"/>
                             <Form.Control.Feedback type="invalid">{formErrors.Secteur}</Form.Control.Feedback>
                          </Form.Group>
                          <Form.Group as={Col} md={3} controlId="formLocalite">
@@ -481,18 +475,18 @@ const SousProjetForm = ({
                     {/* Row 5: Avancements, Estimation */}
                      <Row className="mb-3 g-3">
                           <Form.Group as={Col} md={4} controlId="formEtatAvanPhysi">
-                            <Form.Label className="small mb-1 fw-medium">Av. Physique (%) <span className="text-danger">*</span></Form.Label>
-                            <Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Etat_Avan_Physi} required type="number" name="Etat_Avan_Physi" value={formData.Etat_Avan_Physi} onChange={handleChange} size="sm" step="0.01" min="0" max="100" placeholder="0-100"/>
+                            <Form.Label className="small mb-1 fw-medium">Av. Physique (%) </Form.Label>
+                            <Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Etat_Avan_Physi}  type="number" name="Etat_Avan_Physi" value={formData.Etat_Avan_Physi} onChange={handleChange} size="sm" step="0.01" min="0" max="100" placeholder="0-100"/>
                             <Form.Control.Feedback type="invalid">{formErrors.Etat_Avan_Physi}</Form.Control.Feedback>
                           </Form.Group>
                           <Form.Group as={Col} md={4} controlId="formEtatAvanFinan">
-                            <Form.Label className="small mb-1 fw-medium">Av. Financier (%) <span className="text-danger">*</span></Form.Label>
-                            <Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Etat_Avan_Finan} required type="number" name="Etat_Avan_Finan" value={formData.Etat_Avan_Finan} onChange={handleChange} size="sm" step="0.01" min="0" max="100" placeholder="0-100"/>
+                            <Form.Label className="small mb-1 fw-medium">Av. Financier (%) </Form.Label>
+                            <Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Etat_Avan_Finan}  type="number" name="Etat_Avan_Finan" value={formData.Etat_Avan_Finan} onChange={handleChange} size="sm" step="0.01" min="0" max="100" placeholder="0-100"/>
                             <Form.Control.Feedback type="invalid">{formErrors.Etat_Avan_Finan}</Form.Control.Feedback>
                           </Form.Group>
                           <Form.Group as={Col} md={4} controlId="formEstimIniti">
-                            <Form.Label className="small mb-1 fw-medium">Estim. Initiale <span className="text-danger">*</span></Form.Label>
-                            <Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Estim_Initi} required type="number" name="Estim_Initi" value={formData.Estim_Initi} onChange={handleChange} size="sm" step="0.01" min="0" placeholder="Montant"/>
+                            <Form.Label className="small mb-1 fw-medium">Estim. Initiale </Form.Label>
+                            <Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Estim_Initi}  type="number" name="Estim_Initi" value={formData.Estim_Initi} onChange={handleChange} size="sm" step="0.01" min="0" placeholder="Montant"/>
                             <Form.Control.Feedback type="invalid">{formErrors.Estim_Initi}</Form.Control.Feedback>
                            </Form.Group>
                      </Row>

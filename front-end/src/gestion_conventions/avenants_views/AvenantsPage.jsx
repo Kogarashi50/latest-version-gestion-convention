@@ -109,7 +109,7 @@ const AvenantsPage = () => {
         },
         {
              accessorKey: 'objet', header: 'Objet', size: 200,
-             cell: info => <div className="text-truncate" title={info.getValue()} style={{ width: '300px' }}>{info.getValue()}</div>,
+             cell: info => <div className="text-truncate" title={info.getValue()} style={{ width: '300px' }}>{info.getValue()||'-'}</div>,
              meta: { enableGlobalFilter: true }
          },
          {

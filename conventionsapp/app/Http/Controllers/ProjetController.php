@@ -100,13 +100,13 @@ class ProjetController extends Controller
             'Id_Domaine' => ['required', 'integer', Rule::exists('domaine', 'Code')],
             'Id_Programme' => ['required', 'integer', Rule::exists('programme', 'Code_Programme')],
             'Id_Chantier' => ['required', 'integer', Rule::exists('chantier', 'Code_Chantier')],
-            'Convention_Code' => ['required', 'integer', Rule::exists('convention', 'Code')],
-            'Cout_CRO' => 'required|numeric|min:0',
-            'Date_Debut' => 'required|date_format:Y-m-d',
+            'Convention_Code' => ['nullable', 'integer', Rule::exists('convention', 'Code')],
+            'Cout_CRO' => 'nullable|numeric|min:0',
+            'Date_Debut' => 'nullable|date_format:Y-m-d',
             'Observations' => 'nullable|string',
-            'Etat_Avan_Physi' => 'required|numeric|min:0|max:100',
+            'Etat_Avan_Physi' => 'nullable|numeric|min:0|max:100',
             'Date_Fin' => 'nullable|date_format:Y-m-d|after_or_equal:Date_Debut',
-            'Cout_Projet' => 'required|numeric|min:0',
+            'Cout_Projet' => 'nullable|numeric|min:0',
 
             // Engagements Fields (adjust required/nullable as needed)
             'engagements' => 'present|array', // Must be present, can be empty if allowed
@@ -227,13 +227,13 @@ class ProjetController extends Controller
             'Id_Domaine' => ['required', 'integer', Rule::exists('domaine', 'Code')],
             'Id_Programme' => ['required', 'integer', Rule::exists('programme', 'Code_Programme')],
             'Id_Chantier' => ['required', 'integer', Rule::exists('chantier', 'Code_Chantier')],
-            'Convention_Code' => ['required', 'integer', Rule::exists('convention', 'Code')],
-            'Cout_CRO' => 'required|numeric|min:0',
-            'Date_Debut' => 'required|date_format:Y-m-d',
+            'Convention_Code' => ['nullable', 'integer', Rule::exists('convention', 'Code')],
+            'Cout_CRO' => 'nullable|numeric|min:0',
+            'Date_Debut' => 'nullable|date_format:Y-m-d',
             'Observations' => 'nullable|string',
-            'Etat_Avan_Physi' => 'required|numeric|min:0|max:100',
+            'Etat_Avan_Physi' => 'nullable|numeric|min:0|max:100',
             'Date_Fin' => 'nullable|date_format:Y-m-d|after_or_equal:Date_Debut',
-            'Cout_Projet' => 'required|numeric|min:0',
+            'Cout_Projet' => 'nullable|numeric|min:0',
 
             // Engagements Fields (must be present, can be empty array)
             'engagements' => 'present|array',

@@ -241,7 +241,7 @@ const AvenantVisualisation = ({ itemId, onClose, baseApiUrl = 'http://localhost:
                                          <Col xs={12} md={5} className="fw-bold text-dark">
                                              <FontAwesomeIcon icon={faBuilding} className="me-2 text-warning"/>
                                              {/* Use nested 'partenaire' data */}
-                                             {commit.partenaire?.Description || `ID Partenaire: ${commit.Id_Partenaire}`}
+                                             {commit.partenaire?.Description ||commit.partenaire?.Description_Arr|| `ID Partenaire: ${commit.Id_Partenaire}`}
                                          </Col>
                                          <Col xs={6} md={3}>
                                               <span className='text-muted small d-block'>Montant Convenu:</span>

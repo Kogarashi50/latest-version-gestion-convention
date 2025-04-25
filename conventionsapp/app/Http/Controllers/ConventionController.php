@@ -161,30 +161,30 @@ class ConventionController extends Controller
             $validatedData = $request->validate([
                 // Convention Fields
                 'code' => 'required|integer|unique:convention,code',
-                'classification_prov' => 'required|string',
-                'categorie' => 'required|string',
+                'classification_prov' => 'nullable|string',
+                'categorie' => 'nullable|string',
                 'intitule' => 'required|string',
-                'reference' => 'required|string',
+                'reference' => 'nullable|string',
                 'annee_convention' => 'required|integer|digits:4',
-                'objet' => 'required|string',
-                'objectifs' => 'required|string',
-                'localisation' => 'required|string',
-                'maitre_ouvrage' => 'required|string',
+                'objet' => 'nullable|string',
+                'objectifs' => 'nullable|string',
+                'localisation' => 'nullable|string',
+                'maitre_ouvrage' => 'nullable|string',
                 'partenaire' => 'nullable|string',
-                'cout_global' => 'required|numeric|min:0',
-                'cout_cr' => 'required|numeric|min:0',
+                'cout_global' => 'nullable|numeric|min:0',
+                'cout_cr' => 'nullable|numeric|min:0',
                 'statut' => 'required|string',
-                'operationalisation' => 'required|string',
-                'id_programme' => 'required|integer|exists:programme,Id',
+                'operationalisation' => 'nullable|string',
+                'id_programme' => 'nullable|integer|exists:programme,Id',
                 'id_projet' => 'nullable|integer|exists:projet,ID_Projet',
-                'groupe' => 'required|integer',
+                'groupe' => 'nullable|integer',
                 'rang' => 'nullable|string',
-                'observations' => 'nullable|string|max:20000', // <<< ADDED Validation
+                'observations' => 'nullable|string', // <<< ADDED Validation
 
                 // --- Files & Partners ---
                 'fichiers' => 'nullable|array', // The array itself is optional
                 'fichiers.*' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,xls,xlsx', // Individual files optional + validation
-                'partner_commitments' => ['required', 'string'],
+                'partner_commitments' => ['nullable', 'string'],
             ],
             // --- Custom French Validation Messages ---
             [
@@ -207,7 +207,6 @@ class ConventionController extends Controller
                 'id_projet.exists' => 'Le projet sélectionné est invalide.',
                 'fichiers.*.file' => 'Chaque élément dans :attribute doit être un fichier valide.', // Added for clarity
                 'fichiers.*.mimes' => 'Type de fichier invalide. Acceptés: PDF, DOC, DOCX, JPG, PNG, XLS, XLSX.',
-                'partner_commitments.required' => 'Les engagements des partenaires sont requis.',
             ]);
             Log::info('Validation principale réussie (store - fichiers optionnels).');
         } catch (ValidationException $e) {
@@ -219,11 +218,11 @@ class ConventionController extends Controller
         if (!is_array($partnerCommitmentsInput)) {
              return response()->json(['message' => 'Format invalide pour les engagements partenaires (doit être une liste).'], 422);
         }
-        if (empty($partnerCommitmentsInput)) {
-             // Should be caught by main validation 'partner_commitments.required'
-             Log::warning('Tableau engagements partenaires vide mais requis (store).');
-             return response()->json(['message' => 'Au moins un engagement partenaire est requis.'], 422);
-        }
+        // if (empty($partnerCommitmentsInput)) {
+        //      // Should be caught by main validation 'partner_commitments.required'
+        //      Log::warning('Tableau engagements partenaires vide mais requis (store).');
+        //      return response()->json(['message' => 'Au moins un engagement partenaire est requis.'], 422);
+        // }
         Log::info('Validation détaillée engagements partenaires...');
         foreach ($partnerCommitmentsInput as $index => $commitment) {
             if (!is_array($commitment) || !isset($commitment['Id_Partenaire'], $commitment['Montant_Convenu'], $commitment['is_signatory'])) {
@@ -525,30 +524,30 @@ class ConventionController extends Controller
         $validationRules = [
             // Convention fields (ensure unique 'code' ignores current convention)
             'code' => ['required','integer', Rule::unique('convention', 'code')->ignore($convention->id)],
-            'classification_prov' => 'required|string',
-            'categorie' => 'required|string',
+            'classification_prov' => 'nullable|string',
+            'categorie' => 'nullable|string',
             'intitule' => 'required|string',
-            'reference' => 'required|string',
+            'reference' => 'nullable|string',
             'annee_convention' => 'required|integer|digits:4',
-            'observations' => 'nullable|string|max:20000',
-            'objet' => 'required|string',
-            'objectifs' => 'required|string',
-            'localisation' => 'required|string', // String of province IDs separated by ';'
-            'maitre_ouvrage' => 'required|string',
+            'observations' => 'nullable|string',
+            'objet' => 'nullable|string',
+            'objectifs' => 'nullable|string',
+            'localisation' => 'nullable|string', // String of province IDs separated by ';'
+            'maitre_ouvrage' => 'nullable|string',
             'partenaire' => 'nullable|string',
-            'cout_global' => 'required|numeric|min:0',
-            'cout_cr' => 'required|numeric|min:0',
+            'cout_global' => 'nullable|numeric|min:0',
+            'cout_cr' => 'nullable|numeric|min:0',
             'statut' => 'required|string',
-            'operationalisation' => 'required|string',
-            'id_programme' => 'required|integer|exists:programme,Id',
+            'operationalisation' => 'nullable|string',
+            'id_programme' => 'nullable|integer|exists:programme,Id',
             'id_projet' => 'nullable|integer|exists:projet,ID_Projet',
-            'groupe' => 'required|integer',
+            'groupe' => 'nullable|integer',
             'rang' => 'nullable|string',
 
             // Files & Commitments
             'fichiers' => 'nullable|array',
             'fichiers.*' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,xls,xlsx|max:5120', // Max 5MB example
-            'partner_commitments' => ['required', 'string'], // Keep as string for initial validation
+            'partner_commitments' => ['nullable', 'string'], // Keep as string for initial validation
             'deleted_document_ids' => 'nullable|string', // Keep as string for initial validation
 
             // Confirmation flag (optional, boolean if present)
@@ -570,7 +569,6 @@ class ConventionController extends Controller
              'mimes' => 'Type de fichier invalide. Acceptés: PDF, DOC, DOCX, JPG, PNG, XLS, XLSX.',
              'id_programme.exists' => 'Le programme sélectionné est invalide.',
              'id_projet.exists' => 'Le projet sélectionné est invalide.',
-             'partner_commitments.required' => 'Les engagements des partenaires sont requis.',
              'confirm_delete_commitments.boolean' => 'La confirmation doit être vraie ou fausse.',
              'observations.max' => 'Les observations ne doivent pas dépasser :max caractères.',
          ];

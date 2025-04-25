@@ -183,35 +183,21 @@ const ConventionForm = ({
     const validateForm = () => {
         const errors = {};
         if (!formData.Code) errors.Code = "Le code est requis.";
-        if (!formData.Classification_prov?.trim()) errors.Classification_prov = "La classification est requise.";
-        if (!formData.Categorie?.trim()) errors.Categorie = "La catégorie est requise.";
         if (!formData.Intitule?.trim()) errors.Intitule = "L'intitulé est requis.";
-        if (!formData.Reference?.trim()) errors.Reference = "La référence est requise.";
         if (!formData.Annee_Convention) errors.Annee_Convention = "L'année est requise.";
         else if (isNaN(parseInt(formData.Annee_Convention)) || String(formData.Annee_Convention).length !== 4) errors.Annee_Convention = "L'année doit être valide (YYYY).";
-        if (!formData.Objet?.trim()) errors.Objet = "L'objet est requis.";
-        if (!formData.Objectifs?.trim()) errors.Objectifs = "Les objectifs sont requis.";
-        if (!formData.Maitre_Ouvrage?.trim()) errors.Maitre_Ouvrage = "Le maître d'ouvrage est requis.";
-        if (!formData.provinces || formData.provinces.length === 0) errors.Province = "La localisation (province) est requise.";
-        if (formData.Cout_Global === '' || formData.Cout_Global === null || isNaN(parseCurrency(formData.Cout_Global))) errors.Cout_Global = "Le coût global est requis et doit être un nombre.";
-        if (formData.Cout_CR === '' || formData.Cout_CR === null || isNaN(parseCurrency(formData.Cout_CR))) errors.Cout_CR = "Le coût CR est requis et doit être un nombre.";
+        if ( isNaN(parseCurrency(formData.Cout_Global))) errors.Cout_Global = "Le coût global doit être un nombre.";
         if (!formData.Statut) errors.Statut = "Le statut est requis.";
-        if (!formData.Operationalisation?.trim()) errors.Operationalisation = "L'operationalisation est requise.";
-        if (!formData.programmeId) errors.Id_Programme = "Le programme est requis.";
-        if (formData.observations && formData.observations.length > 20000) errors.Observations = "Les observations ne doivent pas dépasser 20000 caractères.";
-        if (!formData.projetId) errors.Id_Projet = "Le projet est requis.";
-        const currentGroupe = formData.Groupe;
-        if (currentGroupe === null || currentGroupe === undefined || String(currentGroupe).trim() === '') errors.Groupe = "Le groupe est requis.";
-        else if (isNaN(parseInt(currentGroupe))) errors.Groupe = "Le groupe doit être un nombre entier.";
-        if (!selectedPartnerDetails || selectedPartnerDetails.length === 0) {
-            errors.partenaires = "Au moins un partenaire doit être sélectionné.";
-        } else {
-            selectedPartnerDetails.forEach((p) => {
-                const amount = parseCurrency(p.montant);
-                if (p.montant === '' || p.montant === null || isNaN(amount) || amount < 0) errors[`montant_${p.id}`] = `Montant invalide pour ${p.label}.`;
-                if (p.is_signatory && !p.date_signature) errors[`date_sig_${p.id}`] = `Date signature requise pour ${p.label} (signataire).`;
-            });
-        }
+        // const currentGroupe = formData.Groupe;
+        // if (!selectedPartnerDetails || selectedPartnerDetails.length === 0) {
+        //     errors.partenaires = "Au moins un partenaire doit être sélectionné.";
+        // } else {
+        //     selectedPartnerDetails.forEach((p) => {
+        //         const amount = parseCurrency(p.montant);
+        //         if (p.montant === '' || p.montant === null || isNaN(amount) || amount < 0) errors[`montant_${p.id}`] = `Montant invalide pour ${p.label}.`;
+        //         if (p.is_signatory && !p.date_signature) errors[`date_sig_${p.id}`] = `Date signature requise pour ${p.label} (signataire).`;
+        //     });
+        // }
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
      };
@@ -440,7 +426,7 @@ const ConventionForm = ({
                             <Card.Header className='bg-light py-2'><h6 className='mb-0 fw-semibold text-secondary'>Partenaires & Engagements</h6></Card.Header>
                             <Card.Body className="pb-2 pt-3">
                                 <Form.Group as={Row} className="mb-3" controlId="formPartenaires">
-                                    <Form.Label column sm={3} className="small pt-1 fw-medium text-sm-end">Sélection Partenaires <span className="text-danger">*</span></Form.Label>
+                                    <Form.Label column sm={3} className="small pt-1 fw-medium text-sm-end">Sélection Partenaires</Form.Label>
                                     <Col sm={9}>
                                         <Select inputId='partenaire-select-input' name="partenaireSelector" options={allPartenairesOptions} value={allPartenairesOptions.filter(opt => selectedPartnerDetails.some(p => p.id === opt.value))} onChange={handlePartnerSelectionChange} styles={selectStyles} placeholder="- Choisir ou ajouter -" isMulti isClearable closeMenuOnSelect={false} isLoading={loadingOptions.partenaires} className={formErrors.partenaires || formErrors.signatories ? 'is-invalid' : ''} classNamePrefix="react-select"/>
                                         {(formErrors.partenaires || formErrors.signatories) && <div className="invalid-feedback d-block ps-1 small">{formErrors.partenaires} {formErrors.signatories}</div>}
@@ -479,30 +465,30 @@ const ConventionForm = ({
 
                         {/* --- Row 3: Maitre_Ouvrage, Programme, Projet, Localisation --- */}
                         <Row className="mb-3 g-3">
-                             <Form.Group as={Col} md={3} lg={3} controlId="formMaitre_Ouvrage"><Form.Label className="small mb-1 fw-medium">Maitre Ouvrage <span className="text-danger">*</span></Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Maitre_Ouvrage} required type="text" name="Maitre_Ouvrage" value={formData.Maitre_Ouvrage} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Maitre_Ouvrage}</Form.Control.Feedback></Form.Group>
-                            <Form.Group as={Col} md={3} lg={3} controlId="formId_Programme" style={{ maxWidth:'calc(17vw)'}}><Form.Label className="small mb-1 fw-medium">Programme <span className="text-danger">*</span></Form.Label><Select inputId='programme-select-input' name="programmeId" menuPlacement="auto" options={programmesOptions} value={formData.programmeId} onChange={handleProgrammeChange} styles={selectStyles} placeholder="- Selectionner -" isClearable isLoading={loadingOptions.programmes} className={formErrors.Id_Programme ? 'is-invalid' : ''} classNamePrefix="react-select" isMulti={false} /><Form.Control.Feedback type="invalid" style={{ display: formErrors.Id_Programme ? 'block' : 'none'}}>{formErrors.Id_Programme}</Form.Control.Feedback></Form.Group>
-                            <Form.Group as={Col} md={3} lg={3} controlId="formId_Projet" style={{ maxWidth:'calc(17vw)'}}><Form.Label className="small mb-1 fw-medium">Projet <span className="text-danger">*</span></Form.Label><Select inputId='projet-select-input' name="projetId" menuPlacement="auto" options={projetsOptions} value={formData.projetId} onChange={handleProjetChange} styles={selectStyles} placeholder="- Selectionner -" isClearable isLoading={loadingOptions.projets} className={formErrors.Id_Projet ? 'is-invalid' : ''} classNamePrefix="react-select" isMulti={false}/><Form.Control.Feedback type="invalid" style={{ display: formErrors.Id_Projet ? 'block' : 'none'}}>{formErrors.Id_Projet}</Form.Control.Feedback></Form.Group>
-                            <Form.Group as={Col} md={3} lg={3} controlId="formProvince" style={{ maxWidth:'calc(17vw)'}}><Form.Label className="small mb-1 fw-medium">Localisation (Provinces) <span className="text-danger">*</span></Form.Label><Select inputId='province-select-input' name="provinces" menuPlacement="auto" options={provincesOptions} value={formData.provinces} onChange={handleProvinceChange} styles={selectStyles} placeholder="- Selectionner -" isMulti isClearable closeMenuOnSelect={false} isLoading={loadingOptions.provinces} className={formErrors.Province ? 'is-invalid' : ''} classNamePrefix="react-select"/><Form.Control.Feedback type="invalid" style={{ display: formErrors.Province ? 'block' : 'none'}}>{formErrors.Province}</Form.Control.Feedback></Form.Group>
+                             <Form.Group as={Col} md={3} lg={3} controlId="formMaitre_Ouvrage"><Form.Label className="small mb-1 fw-medium">Maitre Ouvrage </Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Maitre_Ouvrage}  type="text" name="Maitre_Ouvrage" value={formData.Maitre_Ouvrage} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Maitre_Ouvrage}</Form.Control.Feedback></Form.Group>
+                            <Form.Group as={Col} md={3} lg={3} controlId="formId_Programme" style={{ maxWidth:'calc(17vw)'}}><Form.Label className="small mb-1 fw-medium">Programme</Form.Label><Select inputId='programme-select-input' name="programmeId" menuPlacement="auto" options={programmesOptions} value={formData.programmeId} onChange={handleProgrammeChange} styles={selectStyles} placeholder="- Selectionner -" isClearable isLoading={loadingOptions.programmes} className={formErrors.Id_Programme ? 'is-invalid' : ''} classNamePrefix="react-select" isMulti={false} /><Form.Control.Feedback type="invalid" style={{ display: formErrors.Id_Programme ? 'block' : 'none'}}>{formErrors.Id_Programme}</Form.Control.Feedback></Form.Group>
+                            <Form.Group as={Col} md={3} lg={3} controlId="formId_Projet" style={{ maxWidth:'calc(17vw)'}}><Form.Label className="small mb-1 fw-medium">Projet </Form.Label><Select inputId='projet-select-input' name="projetId" menuPlacement="auto" options={projetsOptions} value={formData.projetId} onChange={handleProjetChange} styles={selectStyles} placeholder="- Selectionner -" isClearable isLoading={loadingOptions.projets} className={formErrors.Id_Projet ? 'is-invalid' : ''} classNamePrefix="react-select" isMulti={false}/><Form.Control.Feedback type="invalid" style={{ display: formErrors.Id_Projet ? 'block' : 'none'}}>{formErrors.Id_Projet}</Form.Control.Feedback></Form.Group>
+                            <Form.Group as={Col} md={3} lg={3} controlId="formProvince" style={{ maxWidth:'calc(17vw)'}}><Form.Label className="small mb-1 fw-medium">Localisation (Provinces)</Form.Label><Select inputId='province-select-input' name="provinces" menuPlacement="auto" options={provincesOptions} value={formData.provinces} onChange={handleProvinceChange} styles={selectStyles} placeholder="- Selectionner -" isMulti isClearable closeMenuOnSelect={false} isLoading={loadingOptions.provinces} className={formErrors.Province ? 'is-invalid' : ''} classNamePrefix="react-select"/><Form.Control.Feedback type="invalid" style={{ display: formErrors.Province ? 'block' : 'none'}}>{formErrors.Province}</Form.Control.Feedback></Form.Group>
                         </Row>
 
                         {/* --- Row 4: Statut, Operationalisation --- */}
                         <Row className="mb-3 g-3">
                             <Form.Group as={Col} md={4} controlId="formStatut"><Form.Label className="small mb-1 fw-medium">Statut <span className="text-danger">*</span></Form.Label><Select inputId='statut-select-input' name="Statut" options={groupedStatutOptions} value={formData.Statut} onChange={handleStatutChange} styles={selectStyles} placeholder="- Sélectionner Statut -" isClearable formatGroupLabel={(group) => (<div style={{ fontWeight: 'bold', color: '#555', borderTop: '1px solid #eee', paddingTop: '5px', marginTop:'5px' }}>{group.label}</div>)} className={formErrors.Statut ? 'is-invalid' : ''} classNamePrefix="react-select"/><Form.Control.Feedback type="invalid" style={{ display: formErrors.Statut ? 'block' : 'none'}}>{formErrors.Statut}</Form.Control.Feedback></Form.Group>
-                            <Form.Group as={Col} md={8} controlId="formOperationalisation"><Form.Label className="small mb-1 fw-medium">Operationalisation <span className="text-danger">*</span></Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Operationalisation} required type="text" name="Operationalisation" value={formData.Operationalisation} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Operationalisation}</Form.Control.Feedback></Form.Group>
+                            <Form.Group as={Col} md={8} controlId="formOperationalisation"><Form.Label className="small mb-1 fw-medium">Operationalisation </Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Operationalisation}  type="text" name="Operationalisation" value={formData.Operationalisation} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Operationalisation}</Form.Control.Feedback></Form.Group>
                         </Row>
 
                         {/* --- Row 5: Code, Classification_prov, Categorie --- */}
                         <Row className="mb-3 g-3">
                             <Form.Group as={Col} md={4} controlId="formCode"><Form.Label className="small mb-1 fw-medium">Code <span className="text-danger">*</span></Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Code} required type="number" name="Code" value={formData.Code} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Code}</Form.Control.Feedback></Form.Group>
-                            <Form.Group as={Col} md={4} controlId="formClassification_prov"><Form.Label className="small mb-1 fw-medium">Classification Prov <span className="text-danger">*</span></Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Classification_prov} required type="text" name="Classification_prov" value={formData.Classification_prov} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Classification_prov}</Form.Control.Feedback></Form.Group>
-                            <Form.Group as={Col} md={4} controlId="formCategorie"><Form.Label className="small mb-1 fw-medium">Categorie <span className="text-danger">*</span></Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Categorie} required type="text" name="Categorie" value={formData.Categorie} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Categorie}</Form.Control.Feedback></Form.Group>
+                            <Form.Group as={Col} md={4} controlId="formClassification_prov"><Form.Label className="small mb-1 fw-medium">Classification Prov </Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Classification_prov} type="text" name="Classification_prov" value={formData.Classification_prov} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Classification_prov}</Form.Control.Feedback></Form.Group>
+                            <Form.Group as={Col} md={4} controlId="formCategorie"><Form.Label className="small mb-1 fw-medium">Categorie </Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Categorie} type="text" name="Categorie" value={formData.Categorie} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Categorie}</Form.Control.Feedback></Form.Group>
                         </Row>
 
                          {/* --- Row 6: Groupe, Rang, Reference --- */}
                          <Row className="mb-3 g-3">
-                            <Form.Group as={Col} md={4} controlId="formGroupe"><Form.Label className="small mb-1 fw-medium">Groupe <span className="text-danger">*</span></Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Groupe} required type="number" name="Groupe" value={formData.Groupe} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Groupe}</Form.Control.Feedback></Form.Group>
+                            <Form.Group as={Col} md={4} controlId="formGroupe"><Form.Label className="small mb-1 fw-medium">Groupe </Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Groupe} type="number" name="Groupe" value={formData.Groupe} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Groupe}</Form.Control.Feedback></Form.Group>
                             <Form.Group as={Col} md={4} controlId="formRang"><Form.Label className="small mb-1 fw-medium">Rang</Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Rang} type="text" name="Rang" value={formData.Rang} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Rang}</Form.Control.Feedback></Form.Group>
-                            <Form.Group as={Col} md={4} controlId="formReference"><Form.Label className="small mb-1 fw-medium">Reference <span className="text-danger">*</span></Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Reference} required type="text" name="Reference" value={formData.Reference} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Reference}</Form.Control.Feedback></Form.Group>
+                            <Form.Group as={Col} md={4} controlId="formReference"><Form.Label className="small mb-1 fw-medium">Reference </Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Reference} type="text" name="Reference" value={formData.Reference} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Reference}</Form.Control.Feedback></Form.Group>
                         </Row>
 
                         {/* --- Row 7: File Management Section --- */}
@@ -517,14 +503,14 @@ const ConventionForm = ({
 
                         {/* --- Row 8: Objet, Objectifs --- */}
                         <Row className="mb-3 g-3">
-                            <Form.Group as={Col} md={6} controlId="formObjet"><Form.Label className="small mb-1 fw-medium">Objet <span className="text-danger">*</span></Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Objet} required as="textarea" rows={1} name="Objet" value={formData.Objet} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Objet}</Form.Control.Feedback></Form.Group>
-                            <Form.Group as={Col} md={6} controlId="formObjectifs"><Form.Label className="small mb-1 fw-medium">Objectifs <span className="text-danger">*</span></Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Objectifs} required as="textarea" rows={1} name="Objectifs" value={formData.Objectifs} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Objectifs}</Form.Control.Feedback></Form.Group>
+                            <Form.Group as={Col} md={6} controlId="formObjet"><Form.Label className="small mb-1 fw-medium">Objet </Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Objet}  as="textarea" rows={1} name="Objet" value={formData.Objet} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Objet}</Form.Control.Feedback></Form.Group>
+                            <Form.Group as={Col} md={6} controlId="formObjectifs"><Form.Label className="small mb-1 fw-medium">Objectifs </Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Objectifs} as="textarea" rows={1} name="Objectifs" value={formData.Objectifs} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Objectifs}</Form.Control.Feedback></Form.Group>
                         </Row>
 
                         {/* --- Row 9: Costs --- */}
                         <Row className="mb-4 g-3">
-                            <Form.Group as={Col} md={6} controlId="formCout_Global"><Form.Label className="small mb-1 fw-medium">Cout Global (MAD)<span className="text-danger">*</span></Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Cout_Global} required type="number" step="0.01" min="0" name="Cout_Global" value={formData.Cout_Global} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Cout_Global}</Form.Control.Feedback></Form.Group>
-                            <Form.Group as={Col} md={6} controlId="formCout_CR"><Form.Label className="small mb-1 fw-medium">Cout Part CR (MAD)<span className="text-danger">*</span></Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Cout_CR} required type="number" step="0.01" min="0" name="Cout_CR" value={formData.Cout_CR} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Cout_CR}</Form.Control.Feedback></Form.Group>
+                            <Form.Group as={Col} md={6} controlId="formCout_Global"><Form.Label className="small mb-1 fw-medium">Cout Global (MAD)</Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Cout_Global} type="number" step="0.01" min="0" name="Cout_Global" value={formData.Cout_Global} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Cout_Global}</Form.Control.Feedback></Form.Group>
+                            <Form.Group as={Col} md={6} controlId="formCout_CR"><Form.Label className="small mb-1 fw-medium">Cout Part CR (MAD)</Form.Label><Form.Control className={FORM_CONTROL_CLASS} isInvalid={!!formErrors.Cout_CR} type="number" step="0.01" min="0" name="Cout_CR" value={formData.Cout_CR} onChange={handleChange} size="sm"/><Form.Control.Feedback type="invalid">{formErrors.Cout_CR}</Form.Control.Feedback></Form.Group>
                         </Row>
 
                          {/* --- Row 10: Observations --- */}

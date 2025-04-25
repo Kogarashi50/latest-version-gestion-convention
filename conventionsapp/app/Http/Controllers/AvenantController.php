@@ -108,7 +108,7 @@ class AvenantController extends Controller
                         return [
                             'Id_CP' => $pc->Id_CP ?? null,
                             'Id_Partenaire' => $pc->Id_Partenaire,
-                            'label' => optional($pc->partenaire)->Description ?? "Partenaire ID {$pc->Id_Partenaire}",
+                            'label' => optional($pc->partenaire)->Description ??  optional($pc->partenaire)->Description_Arr??"Partenaire ID {$pc->Id_Partenaire}",
                             'Montant_Convenu' => $pc->Montant_Convenu,
                             'is_signatory' => (bool) $pc->is_signatory,
                             'date_signature' => $signatureDate,
@@ -159,7 +159,7 @@ class AvenantController extends Controller
                 'convention_id' => 'required|integer|exists:convention,id',
                 'numero_avenant' => ['required', 'string', 'max:50', Rule::unique('avenants')->where(fn ($query) => $query->where('convention_id', $request->input('convention_id')))],
                 'date_signature' => 'required|date_format:Y-m-d',
-                'objet' => 'required|string',
+                'objet' => 'nullable|string',
                 'type_modification' => ['required', Rule::in($this->modificationTypes)],
                 'montant_modifie' => ['nullable', 'numeric', 'min:0', Rule::requiredIf(fn () => $request->input('type_modification') === 'montant')],
                 'nouvelle_date_fin' => ['nullable', 'date_format:Y-m-d', Rule::requiredIf(fn () => $request->input('type_modification') === 'durée')],
@@ -296,7 +296,7 @@ class AvenantController extends Controller
                   $responseData['partner_commitments'] = $avenant->partnerCommitments->map(function ($pc) {
                      $sigDate = $pc->date_signature ? $pc->date_signature->format('Y-m-d') : null;
                      return [
-                          'Id_CP' => $pc->Id_CP ?? null, 'Id_Partenaire' => $pc->Id_Partenaire, 'label' => optional($pc->partenaire)->Description ?? "ID: {$pc->Id_Partenaire}",
+                          'Id_CP' => $pc->Id_CP ?? null, 'Id_Partenaire' => $pc->Id_Partenaire, 'label' => optional($pc->partenaire)->Description ??  optional($pc->partenaire)->Description_Arr ??"ID: {$pc->Id_Partenaire}",
                           'Montant_Convenu' => $pc->Montant_Convenu, 'is_signatory' => (bool) $pc->is_signatory, 'date_signature' => $sigDate, 'details_signature' => $pc->details_signature ];
                   })->values()->all();
               } else { $responseData['partner_commitments'] = []; }
@@ -398,6 +398,8 @@ class AvenantController extends Controller
                          $partnerData = [
                              'Id' => $pc->partenaire->Id, // Key 'Id'
                              'Description' => $pc->partenaire->Description, // Key 'Description'
+                             'Description_Arr' => $pc->partenaire->Description_Arr, // Key 'Description'
+
                              // Include other partner fields if needed by the frontend later
                          ];
                      } else {
@@ -454,7 +456,7 @@ class AvenantController extends Controller
                 'convention_id' => 'sometimes|required|integer|exists:convention,id', // Usually not changed
                 'numero_avenant' => ['required', 'string', 'max:50', Rule::unique('avenants')->ignore($avenant->id)->where('convention_id', $avenant->convention_id)],
                 'date_signature' => 'required|date_format:Y-m-d',
-                'objet' => 'required|string',
+                'objet' => 'nullable|string',
                 'type_modification' => ['required', Rule::in($this->modificationTypes)],
                 'montant_modifie' => ['nullable', 'numeric', 'min:0', Rule::requiredIf(fn () => $request->input('type_modification') === 'montant')],
                 'nouvelle_date_fin' => ['nullable', 'date_format:Y-m-d', Rule::requiredIf(fn () => $request->input('type_modification') === 'durée')],
@@ -615,7 +617,7 @@ class AvenantController extends Controller
                  $responseData['partner_commitments'] = $avenant->partnerCommitments->map(function ($pc) {
                      $sigDate = $pc->date_signature ? $pc->date_signature->format('Y-m-d') : null;
                      return [
-                         'Id_CP' => $pc->Id_CP ?? null, 'Id_Partenaire' => $pc->Id_Partenaire, 'label' => optional($pc->partenaire)->Description ?? "ID: {$pc->Id_Partenaire}",
+                         'Id_CP' => $pc->Id_CP ?? null, 'Id_Partenaire' => $pc->Id_Partenaire, 'label' => optional($pc->partenaire)->Description ?? optional($pc->partenaire)->Description_Arr??"ID: {$pc->Id_Partenaire}",
                          'Montant_Convenu' => $pc->Montant_Convenu, 'is_signatory' => (bool) $pc->is_signatory, 'date_signature' => $sigDate, 'details_signature' => $pc->details_signature ];
                  })->values()->all();
              } else { $responseData['partner_commitments'] = []; }

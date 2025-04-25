@@ -439,7 +439,7 @@ const VersementForm = ({
              }
         }
 
-        if (!formData.moyen_paiement?.trim()) currentErrors.moyen_paiement = "Moyen de paiement requis.";
+        // if (!formData.moyen_paiement?.trim()) currentErrors.moyen_paiement = "Moyen de paiement requis.";
 
         setFormErrors(currentErrors);
         return Object.values(currentErrors).every(error => !error);
@@ -546,11 +546,11 @@ const VersementForm = ({
 
     return (
         // Using Modal structure for consistency
-        <div className="m-2 p-5 card shadow-sm border-0">
+        <div className="m-2 p-5 card shadow-sm border-0" style={{ maxHeight: 'calc(90vh - 100px)', overflowY: 'auto',overflowX:'hidden' }}>
              <div className="d-flex justify-content-between align-items-center mb-4 flex-shrink-0"><div><h5 className="text-uppercase fw-bold text-secondary mb-1">{isEditing ? 'Modifier' : 'Ajouter'}</h5><h2 className="mb-0 fw-bold">Versement</h2></div><Button variant="warning" onClick={onClose} size="sm" className='rounded-5 px-5'><b>Revenir a la liste</b></Button></div>
 
-            <Form noValidate onSubmit={handleSubmit}>
-                <Modal.Body style={{ maxHeight: 'calc(80vh - 120px)', overflowY: 'auto',overflowX:'hidden' }}>
+            <Form noValidate onSubmit={handleSubmit} >
+                <Modal.Body >
                     {/* Status Alerts */}
                     {submissionStatus.error && ( <Alert variant="danger" className="mb-3 py-2" dismissible onClose={() => setSubmissionStatus(prev => ({...prev, error: null}))}><FontAwesomeIcon icon={faExclamationTriangle} className="me-2"/> {submissionStatus.error}</Alert> )}
                     {submissionStatus.success && ( <Alert variant="success" className="mb-3 py-2">Versement {isEditing ? 'modifié' : 'ajouté'} avec succès !</Alert> )}
@@ -658,10 +658,10 @@ const VersementForm = ({
                          </Form.Group>
 
                          <Form.Group as={Col} md={4} controlId="formMoyenPaiement">
-                             <Form.Label className="small mb-1 fw-medium">Moyen de Paiement <span className="text-danger">*</span></Form.Label>
+                             <Form.Label className="small mb-1 fw-medium">Moyen de Paiement </Form.Label>
                              <Form.Select
                                 className={FORM_SELECT_CLASS}
-                                name="moyen_paiement" value={formData.moyen_paiement} onChange={handleChange} required
+                                name="moyen_paiement" value={formData.moyen_paiement} onChange={handleChange} 
                                 isInvalid={!!formErrors.moyen_paiement} size="sm" disabled={submissionStatus.loading}>
                                  <option value="">-- Sélectionner --</option>
                                  {PAIEMENT_METHODE_OPTIONS.map(opt => (<option key={opt.value} value={opt.value}>{opt.label}</option>))}
