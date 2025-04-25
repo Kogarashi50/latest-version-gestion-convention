@@ -78,23 +78,15 @@ class ActivityLogController extends Controller
                 $query->orderBy('created_at', 'desc'); // Secure fallback sort
             }
 
-            // --- Pagination ---
-            $perPage = $request->query('perPage', 20); // Match frontend default if possible
-            $activityLogs = $query->paginate($perPage);
+           
+           $allActivityLogs = $query->get();
 
-            Log::info("Successfully fetched activity logs. Page: {$activityLogs->currentPage()}, PerPage: {$perPage}, Total: {$activityLogs->total()}");
 
             // Return structured JSON response matching DynamicTable expectations
             return response()->json([
                 // Key expected by frontend DynamicTable for the items
-                'data' => $activityLogs->items(),
-                // Key expected by frontend DynamicTable for pagination info
-                'pagination' => [
-                    'currentPage' => $activityLogs->currentPage(),
-                    'totalPages' => $activityLogs->lastPage(),
-                    'totalItems' => $activityLogs->total(),
-                    'perPage' => $activityLogs->perPage(),
-                ],
+                'data' => $allActivityLogs,
+            
             ], 200);
 
         } catch (\Exception $e) {

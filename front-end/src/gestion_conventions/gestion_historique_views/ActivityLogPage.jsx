@@ -24,21 +24,48 @@ registerLocale('fr', fr); // Register French locale for DatePicker
 const BASE_API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 const formatDate = (dateString, includeTime = true) => {
-    if (!dateString) return '-';
+    if (!dateString) {
+        return '-'; // Handle null, undefined, or empty strings
+    }
+
     try {
+        // Attempt to parse the date string using the built-in Date constructor
         const date = new Date(dateString);
-        if (isNaN(date.getTime())) return dateString;
+
+        // --- CRUCIAL CHECK ---
+        // Verify if the date object is valid. isNaN() on a date object checks
+        // if its internal time value is NaN, which indicates an invalid date.
+        if (isNaN(date.getTime())) {
+            console.warn("formatDate: Could not parse date string:", dateString);
+            // Return the original string or a placeholder if parsing fails
+            return dateString;
+        }
+
+        // --- Formatting (Only if date is valid) ---
         const day = String(date.getDate()).padStart(2, '0');
+        // getMonth() is 0-indexed (0 for January), so add 1
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const year = date.getFullYear();
-        if (!includeTime) { return `${day}/${month}/${year}`; }
+
+        // If only date is needed, return it here
+        if (!includeTime) {
+            return `${day}/${month}/${year}`;
+        }
+
+        // Continue formatting time components
         const hours = String(date.getHours()).padStart(2, '0');
         const minutes = String(date.getMinutes()).padStart(2, '0');
         const seconds = String(date.getSeconds()).padStart(2, '0');
-        return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
-    } catch (e) { console.error("Date format error:", dateString, e); return dateString; }
-};
 
+        // Return the full formatted string
+        return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+
+    } catch (e) {
+        // Catch any unexpected errors (less likely now with the isNaN check)
+        console.error("formatDate: Unexpected error processing date string:", dateString, e);
+        return dateString; // Fallback to original string on any error
+    }
+};
 const getEventDisplay = (eventName) => {
     switch (eventName?.toLowerCase()) {
         case 'created': return {value:'created', icon: faPlusCircle, color: 'success', label: 'Créé' };
@@ -285,7 +312,6 @@ console.log(userOptions)
             <DynamicTable
                 fetchUrl="/activity-log"
                 dataKey="data"
-                paginationDataKey="pagination"
                 baseApiUrl={BASE_API_URL}
 
                 columns={activityColumns} // Pass columns with filter functions
